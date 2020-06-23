@@ -118,13 +118,15 @@ var (
 			// setup the router
 			r := gin.New()
 			r.Use(ginLogger(), gin.RecoveryWithWriter(recoveryLogger{}))
-			r.POST("/admit", admission.HandleAdmissionRequest(globalConfig))
+			//TODO: remove handleAdmissionRequest
+			r.POST("/checkImage", admission.HandleAdmissionRequest(globalConfig))
 			r.GET("/health", func(c *gin.Context) {
 				c.String(http.StatusOK, "everything is fine")
 			})
 
 			// run the server using tls certificates if provided
 			if globalConfig.TlsEnabled {
+				//TODO: remove certs
 				logrus.WithFields(logrus.Fields{
 					"tlsEnabled":  globalConfig.TlsEnabled,
 					"tlsCertFile": globalConfig.TlsCertFile,
@@ -142,6 +144,7 @@ var (
 
 func init() {
 	// flags set for the root command and all its subcommands
+	//TODO: remove certs handling
 	rootCmd.PersistentFlags().BoolVarP(&globalConfig.TlsEnabled, "tls", "t", true, "tls enabled")
 	rootCmd.PersistentFlags().StringVar(&globalConfig.TlsCertFile, "tls-cert", "/etc/opa-notary-connector/tls/cert.pem", "TLS certificate file.")
 	rootCmd.PersistentFlags().StringVar(&globalConfig.TlsKeyFile, "tls-key", "/etc/opa-notary-connector/tls/key.pem", "TLS key file.")

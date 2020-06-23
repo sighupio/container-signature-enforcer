@@ -93,88 +93,120 @@ func reviewAdmission(ar *vAdmission.AdmissionReview, config *config.GlobalConfig
 
 	// 5. check all images against policies defined in the config
 	patches := []JSONPatch{}
+	status := -1
 	for image, specPaths := range ContainerSpecPath {
-		// get repositories matching the image
-		repos, err := config.GetMatchingRepositoriesPerImage(strings.Split(image, ":")[0], namespace, log)
-		log.WithFields(logrus.Fields{"image": image, "repos": repos}).Debug("Got matching repos for image")
-
-		// if no repository matched, default deny and send
+		status, err := admissionLogic(admissionResponse, ar, namespace, image, specPaths, patches, log, config)
 		if err != nil {
-
-			contextLogger := log.WithFields(logrus.Fields{"namespace": namespace, "image": image})
-			switch err := err.(type) {
-			case conf.ErrNoNamespaceMatched:
-				contextLogger.Debug("No namespace matched, will allow")
-				admissionResponse = allowAdmission(admissionResponse, log)
-			case conf.ErrNoRepositoryMatched:
-				contextLogger.Debug("No repos matching, will deny")
-				admissionResponse = denyAdmission(admissionResponse, fmt.Sprintf("The image %s is not allowed, given that is not matching any configured repository", image), log)
-			default:
-				contextLogger.WithError(err).Error("Unkown error returned while trying to get matching repositories")
-				admissionResponse = denyAdmission(admissionResponse, fmt.Sprintf("Unexpected error: %v", err), log)
-			}
-
-			status, ar := prepareResponse(admissionResponse, patches, ar, log)
+			admissionResponse = denyAdmission(admissionResponse, fmt.Sprintf("The image %s is not allowed, given that is not matching any configured repository", image), log)
+			status, ar = prepareResponse(admissionResponse, patches, ar, log)
 			return status, ar, err
 		}
+	}
+	// FIN QUA
+	status, ar = prepareResponse(admissionResponse, patches, ar, log)
+	return status, ar, err
+}
 
-		// repos are sorted by priority, therefore the first to be matched is the one with highest priority,
-		// no other repos should be checked
-		for _, repo := range repos {
-			// if one of the repos has no trust enabled and matches the image we should allow it
-			if !repo.Trust.Enabled {
-				admissionResponse = allowAdmission(admissionResponse, log)
-				break
-			} else {
-				ref, err := notary.NewReference(image)
+//TODO:
+// namespace input param will be moved to rego
+// wrap it in handler for body { "image": "...", "namespace": "..." }
+// inject Notary dependency to make it testable
+func referee(namespace, image string, log *logrus.Entry, config *conf.GlobalConfig) (ok bool, imageWithSha string, err error) {
+	repos, err := config.GetMatchingRepositoriesPerImage(strings.Split(image, ":")[0], namespace, log)
+	log.WithFields(logrus.Fields{"image": image, "repos": repos}).Debug("Got matching repos for image")
 
-				if err != nil {
-					log.WithFields(logrus.Fields{
-						"image":  image,
-						"server": repo.Trust.TrustServer,
-					}).WithError(err).Error("Image was not parsable")
-					admissionResponse = denyAdmission(admissionResponse, fmt.Sprintf("Unable to parse image %s", image), log)
-					status, ar := prepareResponse(admissionResponse, patches, ar, log)
-					return status, ar, err
-				}
+	// if no repository matched, default deny and send
+	if err != nil {
+		return false, "", err
+	}
 
-				client, err := notary.NewFileCachedRepository(config, &repo, ref, log)
+	// repos are sorted by priority, therefore the first to be matched is the one with highest priority,
+	// no other repos should be checked
+	for _, repo := range repos {
+		// if one of the repos has no trust enabled and matches the image we should allow it
+		if !repo.Trust.Enabled {
+			return true, "", nil
+		} else {
+			ref, err := notary.NewReference(image)
 
-				if err != nil {
-					log.WithFields(logrus.Fields{
-						"image":  image,
-						"server": repo.Trust.TrustServer,
-					}).WithError(err).Error("Not able to create cached repository for image")
-					admissionResponse = denyAdmission(admissionResponse, fmt.Sprintf("Unable to reach notary server for %s at %s, will deny", image, repo.Trust.TrustServer), log)
-					status, ar := prepareResponse(admissionResponse, patches, ar, log)
-					return status, ar, err
-				}
-
-				// otherwise retrieve the signed sha from the repository and add the patch
-				imageWithSha, err := notary.CheckImage(ref, config.TrustRootDir, &repo, client, log)
-
-				if err != nil {
-					admissionResponse = denyAdmission(admissionResponse, fmt.Sprintf("Image %s has not been signed by %s", image, repo.Trust.TrustServer), log)
-					status, ar := prepareResponse(admissionResponse, patches, ar, log)
-					return status, ar, err
-				} else {
-					admissionResponse = allowAdmission(admissionResponse, log)
-					for _, specPath := range specPaths {
-						patch := JSONPatch{
-							Op:    "replace",
-							Path:  specPath,
-							Value: imageWithSha,
-						}
-						log.WithField("patch", patch).Debug("Adding single patch")
-						patches = append(patches, patch)
-					}
-					log.WithField("patches", patches).Debug("Patches to be returned")
-				}
+			if err != nil {
+				log.WithFields(logrus.Fields{
+					"image":  image,
+					"server": repo.Trust.TrustServer,
+				}).WithError(err).Error("Image was not parsable")
+				return false, "", err
 			}
+
+			client, err := notary.NewFileCachedRepository(config, &repo, ref, log)
+
+			if err != nil {
+				log.WithFields(logrus.Fields{
+					"image":  image,
+					"server": repo.Trust.TrustServer,
+				}).WithError(err).Error("Not able to create cached repository for image")
+				return false, "", err
+			}
+
+			// otherwise retrieve the signed sha from the repository and add the patch
+			imageWithSha, err := notary.CheckImage(ref, config.TrustRootDir, &repo, client, log)
+			return true, imageWithSha, err
+
 		}
 	}
-	status, ar := prepareResponse(admissionResponse, patches, ar, log)
-	return status, ar, err
+	return false, "", err
+}
+
+func refereeLoop(namespace, image string, specPaths []string, patches []JSONPatch, log *logrus.Entry, config *conf.GlobalConfig) (bool, error) {
+	ok, imageWithSha, err := referee(namespace, image, log, config)
+	if err != nil {
+		return false, err
+	} else {
+		for _, specPath := range specPaths {
+			patch := JSONPatch{
+				Op:    "replace",
+				Path:  specPath,
+				Value: imageWithSha,
+			}
+			log.WithField("patch", patch).Debug("Adding single patch")
+			patches = append(patches, patch)
+		}
+		log.WithField("patches", patches).Debug("Patches to be returned")
+	}
+	return ok, err
+
+}
+
+// TODO: remove admissionResponse, ar, specPaths
+func admissionLogic(admissionResponse *vAdmission.AdmissionResponse, ar *vAdmission.AdmissionReview, namespace, image string, specPaths []string, patches []JSONPatch, log *logrus.Entry, config *config.GlobalConfig) (int, error) {
+	// get repositories matching the image
+
+	status := -1
+	ok, err := refereeLoop(namespace, image, specPaths, patches, log, config)
+	// if no repository matched, default deny and send
+	if err != nil {
+		contextLogger := log.WithFields(logrus.Fields{"namespace": namespace, "image": image})
+		switch err := err.(type) {
+		case conf.ErrNoNamespaceMatched:
+			contextLogger.Debug("No namespace matched, will allow")
+			admissionResponse = allowAdmission(admissionResponse, log)
+		case conf.ErrNoRepositoryMatched:
+			contextLogger.Debug("No repos matching, will deny")
+			admissionResponse = denyAdmission(admissionResponse, fmt.Sprintf("The image %s is not allowed, given that is not matching any configured repository", image), log)
+		default:
+			contextLogger.WithError(err).Error("Unkown error returned while trying to get matching repositories")
+			admissionResponse = denyAdmission(admissionResponse, fmt.Sprintf("Unexpected error: %v", err), log)
+		}
+
+		status, _ = prepareResponse(admissionResponse, patches, ar, log)
+	}
+	if ok {
+		admissionResponse = allowAdmission(admissionResponse, log)
+	} else {
+		admissionResponse = denyAdmission(admissionResponse, "generic error", log)
+	}
+	status, _ = prepareResponse(admissionResponse, patches, ar, log)
+	return status, err
+
 }
 
 func prepareResponse(admissionResponse *vAdmission.AdmissionResponse, patches []JSONPatch, reviewRequest *vAdmission.AdmissionReview, log *logrus.Entry) (int, *vAdmission.AdmissionReview) {
