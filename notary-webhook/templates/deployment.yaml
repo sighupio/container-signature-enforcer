@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "opa-notary-connector.fullname" . }}
+  labels:
+{{ include "opa-notary-connector.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "opa-notary-connector.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "opa-notary-connector.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: opa-notary-connector-config
+        - name: certs
+          secret:
+            secretName:  {{- if .Values.notaryWebhook.tls.secret }} {{ .Values.notaryWebhook.tls.secret}} {{- else }} opa-notary-connector-certs {{- end }}
+        {{- if .Values.notaryWebhook.notaryTlsCerts }}
+        - name: tls-certs
+          secret:
+            secretName:  notary-tls-certs
+        {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+            - /opa-notary-connector
+            - -c
+            - /etc/opa-notary-connector/conf/trust.yaml
+            - -v
+            - {{ .Values.notaryWebhook.logLevel }}
+            - -l
+            - {{ .Values.notaryWebhook.listen.address }}:{{ .Values.notaryWebhook.listen.port }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: GIN_MODE
+              value: {{ if .Values.notaryWebhook.production }}release{{ else }}debug{{ end }}
+          volumeMounts:
+            - name: config
+              mountPath: "/etc/opa-notary-connector/conf"
+              readOnly: true
+            - name: certs
+              mountPath: "/etc/opa-notary-connector/tls"
+              readOnly: true
+            {{- if .Values.notaryWebhook.notaryTlsCerts }}
+            - name: tls-certs
+              mountPath: "/etc/ssl/certs"
+              readOnly: true
+            {{- end }}
+          ports:
+            - name: https
+              containerPort: {{ .Values.notaryWebhook.listen.port }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              scheme: HTTPS
+              port: https
+          readinessProbe:
+            httpGet:
+              path: /health
+              scheme: HTTPS
+              port: https
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "opa-notary-connector.fullname" . }}-test-connection"
+  labels:
+{{ include "opa-notary-connector.labels" . | indent 4 }}
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args:  ['{{ include "opa-notary-connector.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never

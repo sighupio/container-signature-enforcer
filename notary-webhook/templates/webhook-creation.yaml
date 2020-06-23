@@ -1,0 +1,99 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-admission-webhooks
+  annotations:
+    helm.sh/hook: post-install
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: hook-succeeded
+  labels:
+{{ include "opa-notary-connector.labels" . | indent 4 }}
+spec:
+  template:
+    metadata:
+      name: create-admission-webhooks
+      labels:
+{{ include "opa-notary-connector.labels" . | indent 8 }}
+    spec:
+      serviceAccountName: {{ template "opa-notary-connector.fullname" . }}
+      containers:
+        - name: kubectl
+          image: "{{ .Values.kubectl.repository }}:{{ .Values.kubectl.tag }}"
+          command:
+            - kubectl
+            - apply
+            - -f
+            - /tmp/opa-notary-connector/webhooks.yaml
+          volumeMounts:
+            - mountPath: "/tmp/opa-notary-connector"
+              name: tmp-configmap
+      volumes:
+        - name: tmp-configmap
+          configMap:
+            name: opa-notary-connectors
+      restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-notary-connectors
+  labels:
+data:
+  webhooks.yaml: |-
+    apiVersion: admissionregistration.k8s.io/v1beta1
+    kind: MutatingWebhookConfiguration
+    metadata:
+      name: notary-admission-config
+      labels:
+{{ include "opa-notary-connector.labels" . | indent 8 }}
+    webhooks:
+      - name: trust.hooks.securityenforcement.admission.sighup.io
+        clientConfig:
+          service:
+            name: {{ template "opa-notary-connector.fullname" . }}
+            namespace: {{ .Release.Namespace }}
+            path: "/admit"
+          caBundle: {{ .Values.notaryWebhook.tls.ca }}
+        rules:
+          - operations: [ "CREATE", "UPDATE" ]
+            apiGroups: ["*"]
+            apiVersions: ["*"]
+            resources: ["pods", "deployments", "replicationcontrollers", "replicasets", "daemonsets", "statefulsets", "jobs", "cronjobs"]
+        failurePolicy: Fail
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: delete-admission-webhooks
+  annotations:
+    helm.sh/hook: pre-delete
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: hook-succeeded
+  labels:
+{{ include "opa-notary-connector.labels" . | indent 4 }}
+spec:
+  template:
+    metadata:
+      name: -admission-webhooks
+      labels:
+{{ include "opa-notary-connector.labels" . | indent 8 }}
+    spec:
+      serviceAccountName: {{ template "opa-notary-connector.fullname" . }}
+      containers:
+        - name: kubectl
+          image: "{{ .Values.kubectl.repository }}:{{ .Values.kubectl.tag }}"
+          command:
+            - kubectl
+            - delete
+            - -f
+            - /tmp/opa-notary-connector/webhooks.yaml
+            - --ignore-not-found=true
+          volumeMounts:
+            - mountPath: "/tmp/opa-notary-connector"
+              name: tmp-configmap
+      volumes:
+        - name: tmp-configmap
+          configMap:
+            name: opa-notary-connectors
+      restartPolicy: OnFailure
