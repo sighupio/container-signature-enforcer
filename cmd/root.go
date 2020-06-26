@@ -21,6 +21,16 @@ const (
 	uuidField = "uuid"
 )
 
+type Request struct {
+	Namespace string `json:"namespace,omitempty"`
+	Image     string `json:"image,omitempty"`
+}
+
+type Response struct {
+	Request
+	Sha256 string `json:"sha256,omitempty"`
+}
+
 var (
 	globalConfig = conf.NewGlobaConfig()
 
@@ -119,7 +129,8 @@ var (
 			r := gin.New()
 			r.Use(ginLogger(), gin.RecoveryWithWriter(recoveryLogger{}))
 			//TODO: remove handleAdmissionRequest
-			r.POST("/checkImage", admission.HandleAdmissionRequest(globalConfig))
+			// handleAdmissionRequest -> refereeLoop
+			r.POST("/checkImage", refereeLoopHandlerBuilder(globalConfig))
 			r.GET("/health", func(c *gin.Context) {
 				c.String(http.StatusOK, "everything is fine")
 			})
@@ -141,6 +152,34 @@ var (
 		},
 	}
 )
+
+func refereeLoopHandlerBuilder(config *conf.GlobalConfig) func(c *gin.Context) {
+	return func(c *gin.Context) {
+
+		log := logrus.WithField("uuid", c.GetString("uuid"))
+
+		request := new(Request)
+		if err := c.ShouldBindJSON(request); err != nil {
+			log.WithError(err).Error("unable to bind body to Request object")
+			c.AbortWithError(http.StatusBadRequest, err)
+		}
+
+		sha256, err := admission.Referee(request.Namespace, request.Image, log, config)
+
+		if err != nil {
+			log.WithError(err).Errorf("there was an error while processing %+v", request)
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+		response := Response{
+			Request: request,
+			Sha256:  sha256,
+		}
+
+		c.JSON(http.StatusOK, response)
+	}
+
+}
 
 func init() {
 	// flags set for the root command and all its subcommands
