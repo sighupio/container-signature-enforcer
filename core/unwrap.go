@@ -1,4 +1,4 @@
-package admission
+package core
 
 //const (
 //podSpecPath      = "/spec"

@@ -10,8 +10,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/gin-gonic/gin"
 
-	"github.com/sighupio/opa-notary-connector/admission"
 	conf "github.com/sighupio/opa-notary-connector/config"
+	"github.com/sighupio/opa-notary-connector/core"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
@@ -146,7 +146,8 @@ func refereeLoopHandlerBuilder(config *conf.GlobalConfig) func(c *gin.Context) {
 			c.AbortWithError(http.StatusBadRequest, err)
 		}
 
-		sha256, err := admission.Referee(request.Namespace, request.Image, log, config)
+		//TODO remove namespace
+		sha256, err := core.Referee(request.Namespace, request.Image, log, config)
 
 		if err != nil {
 			log.WithError(err).Errorf("there was an error while processing %+v", request)

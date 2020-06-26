@@ -19,53 +19,74 @@ import (
 	"github.com/theupdateframework/notary/tuf/data"
 )
 
-func NewFileCachedRepository(c *config.GlobalConfig, repo *config.Repository, ref *Reference, log *logrus.Entry) (*client.Repository, error) {
-	contextLogger := log.WithFields(logrus.Fields{"image": ref.original, "server": repo.Trust.TrustServer})
-	contextLogger.WithField("signers", repo.Trust.Signers).Debug("Checking image against server for signers")
-	// initialize the repo
-	r, err := client.NewFileCachedRepository(
-		c.TrustRootDir,
-		data.GUN(ref.name),
-		repo.Trust.TrustServer,
-		makeHubTransport(repo.Trust.TrustServer, ref.name, log),
-		nil, //no need for passRetriever ATM
-		//TODO: pass the notary CA explicitly via conf
-		trustpinning.TrustPinConfig{},
-	)
+type NotaryRepository struct {
+	rolelist          []data.RoleName
+	rolesFound        map[data.RoleName]bool
+	rolesToPublicKeys map[data.RoleName]data.PublicKey
+	clientRepository  *client.Repository
+	config            *config.GlobalConfig
+	configRepository  *config.Repository
+	log               *logrus.Entry
+	reference         *Reference
+}
+
+func NewNotaryRepository(image string, repo *config.Repository, log *logrus.Entry) (*NotaryRepository, error) {
+	ref, err := NewReference(image)
 	if err != nil {
-		contextLogger.WithError(err).Error("Error creating repository")
+		log.WithFields(logrus.Fields{
+			"image":  image,
+			"server": repo.Trust.TrustServer,
+		}).WithError(err).Error("Image was not parsable")
+		return nil, err
 	}
-	return &r, err
+	no := NotaryRepository{
+		configRepository: repo,
+		reference:        ref,
+		log:              log,
+	}
+	err = no.newFileCachedRepository()
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"image":  image,
+			"server": repo.Trust.TrustServer,
+		}).WithError(err).Error("failed creating file cached repository")
+		return nil, err
+	}
+
+	return &no, nil
+}
+
+func (no *NotaryRepository) getRolesFromSigners(signers []*config.Signer, log *logrus.Entry) (err error) {
+	// build the roles from the signers
+	for _, signer := range signers {
+		role := data.RoleName(signer.Role)
+		no.rolelist = append(no.rolelist, role)
+
+		keyFromConfig, err := signer.GetPEM(log)
+
+		if err != nil || keyFromConfig == nil {
+			log.WithField("signer", signer).WithError(err).Debug("Error parsing public key")
+			return err
+		}
+		log.WithFields(logrus.Fields{"signer": signer, "parsedPublicKey": keyFromConfig}).Debug("returning parsed public key")
+
+		no.rolesToPublicKeys[role] = *keyFromConfig
+		no.rolesFound[role] = false
+	}
+	return nil
 }
 
 // returns the sha of an image in a given trust server
-func CheckImage(ref *Reference, rootDir string, repo *config.Repository, client *client.Repository, log *logrus.Entry) (string, error) {
-	contextLogger := log.WithFields(logrus.Fields{"image": ref, "server": repo.Trust.TrustServer})
+//ref *Reference, rootDir string, repo *config.Repository
+func (no *NotaryRepository) GetSha() (string, error) {
+	contextLogger := no.log.WithFields(logrus.Fields{"image": no.reference, "server": no.configRepository.Trust.TrustServer})
 
-	// build the roles from the signers
-	rolelist := []data.RoleName{}
-	rolesToPublicKeys := map[data.RoleName]data.PublicKey{}
-	//TODO: do it once per config
-	rolesFound := map[data.RoleName]bool{}
-	for _, signer := range repo.Trust.Signers {
-		role := data.RoleName(signer.Role)
-		rolelist = append(rolelist, role)
-		keyFromConfig, err := signer.GetPEM(contextLogger)
-
-		if err != nil || keyFromConfig == nil {
-			contextLogger.WithField("signer", signer).WithError(err).Debug("Error parsing public key")
-			return "", err
-		}
-		contextLogger.WithFields(logrus.Fields{"signer": signer, "parsedPublicKey": keyFromConfig}).Debug("returning parsed public key")
-
-		rolesToPublicKeys[role] = *keyFromConfig
-		rolesFound[role] = false
-	}
+	no.getRolesFromSigners(no.configRepository.Trust.Signers, contextLogger)
 
 	/////////////////////////////////////// modified from Portieris codebase
-	targets, err := (*client).GetAllTargetMetadataByName(ref.tag)
+	targets, err := (*no.clientRepository).GetAllTargetMetadataByName(no.reference.tag)
 
-	contextLogger.WithFields(logrus.Fields{"ref": ref, "targets": targets}).Debug("Retrieved targets for image from server")
+	contextLogger.WithFields(logrus.Fields{"ref": no.reference, "targets": targets}).Debug("Retrieved targets for image from server")
 	if err != nil {
 		contextLogger.WithError(err).Error("GetAllTargetMetadataByName returned an error")
 		return "", err
@@ -78,19 +99,19 @@ func CheckImage(ref *Reference, rootDir string, repo *config.Repository, client 
 
 	var digest []byte // holds digest of the signed image
 
-	if len(rolelist) == 0 {
+	if len(no.rolelist) == 0 {
 		// if no signer specified, no way to decide between the available targets, accept the last one
 		for _, target := range targets {
 			digest = target.Target.Hashes[notary.SHA256]
 		}
 		contextLogger.WithField("digest", digest).Debug("RoleList length == 0, returning digest", digest)
 	} else {
-		contextLogger.WithFields(logrus.Fields{"rolelist": rolelist, "targets": targets}).Debug("Looking for roles iterating over targets")
+		contextLogger.WithFields(logrus.Fields{"rolelist": no.rolelist, "targets": targets}).Debug("Looking for roles iterating over targets")
 		// filter out targets signed by not required roles
 		for _, target := range targets { // iterate over each target
 
 			// See if a signer was specified for this target
-			if keyFromConfig, ok := rolesToPublicKeys[target.Role.Name]; ok {
+			if keyFromConfig, ok := no.rolesToPublicKeys[target.Role.Name]; ok {
 				if keyFromConfig != nil {
 					// Assuming public key is in PEM format and not encoded any further
 					contextLogger = contextLogger.WithField("role", target.Role.Name)
@@ -102,7 +123,7 @@ func CheckImage(ref *Reference, rootDir string, repo *config.Repository, client 
 					// We found a matching KeyID, so mark the role found in the map.
 					contextLogger.WithField("keyID", keyFromConfig.ID()).Debug("found role with keyID")
 					// store the digest of the latest signed release
-					rolesFound[target.Role.Name] = true
+					no.rolesFound[target.Role.Name] = true
 				} else {
 					contextLogger.WithField("role", target.Role.Name).Error("PublicKey not specified for role")
 					return "", fmt.Errorf("PublicKey not specified for role %s", target.Role.Name)
@@ -120,10 +141,10 @@ func CheckImage(ref *Reference, rootDir string, repo *config.Repository, client 
 		}
 
 		//check all signatures from all specified roles have been found, overwise return error
-		for role, found := range rolesFound {
+		for role, found := range no.rolesFound {
 			if !found {
-				log.WithFields(logrus.Fields{"role": role, "key": rolesToPublicKeys[role]}).Error("Role not found with key")
-				return "", fmt.Errorf("%s role not found with key %s", role, rolesToPublicKeys[role])
+				no.log.WithFields(logrus.Fields{"role": role, "key": no.rolesToPublicKeys[role]}).Error("Role not found with key")
+				return "", fmt.Errorf("%s role not found with key %s", role, no.rolesToPublicKeys[role])
 			}
 		}
 	}
@@ -134,7 +155,28 @@ func CheckImage(ref *Reference, rootDir string, repo *config.Repository, client 
 	return stringDigest, nil
 }
 
-func makeHubTransport(server, image string, log *logrus.Entry) http.RoundTripper {
+// reference is notary lingo for image
+func (no *NotaryRepository) newFileCachedRepository() error {
+	contextLogger := no.log.WithFields(logrus.Fields{"image": no.reference.original, "server": no.configRepository.Trust.TrustServer})
+	contextLogger.WithField("signers", no.configRepository.Trust.Signers).Debug("Checking image against server for signers")
+	// initialize the repo
+	r, err := client.NewFileCachedRepository(
+		no.config.TrustRootDir,
+		data.GUN(no.reference.name),
+		no.configRepository.Trust.TrustServer,
+		no.makeHubTransport(no.configRepository.Trust.TrustServer, no.reference.name, contextLogger),
+		nil, //no need for passRetriever ATM
+		//TODO: pass the notary CA explicitly via conf
+		trustpinning.TrustPinConfig{},
+	)
+	if err != nil {
+		contextLogger.WithError(err).Error("Error creating repository")
+	}
+	no.clientRepository = &r
+	return err
+}
+
+func (no *NotaryRepository) makeHubTransport(server, image string, log *logrus.Entry) http.RoundTripper {
 	base := http.DefaultTransport
 	modifiers := []transport.RequestModifier{
 		transport.NewHeaderRequestModifier(http.Header{

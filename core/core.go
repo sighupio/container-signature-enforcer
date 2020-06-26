@@ -1,4 +1,4 @@
-package admission
+package core
 
 import (
 	"fmt"
@@ -45,17 +45,8 @@ func Referee(namespace, image string, log *logrus.Entry, config *conf.GlobalConf
 		if !repo.Trust.Enabled {
 			return "", nil
 		} else {
-			ref, err := notary.NewReference(image)
 
-			if err != nil {
-				log.WithFields(logrus.Fields{
-					"image":  image,
-					"server": repo.Trust.TrustServer,
-				}).WithError(err).Error("Image was not parsable")
-				return "", err
-			}
-
-			client, err := notary.NewFileCachedRepository(config, &repo, ref, log)
+			no, err := notary.NewNotaryRepository(image, &repo, log)
 
 			if err != nil {
 				log.WithFields(logrus.Fields{
@@ -66,8 +57,12 @@ func Referee(namespace, image string, log *logrus.Entry, config *conf.GlobalConf
 			}
 
 			// otherwise retrieve the signed sha from the repository and add the patch
-			imageWithSha, err := notary.CheckImage(ref, config.TrustRootDir, &repo, client, log)
-			return imageWithSha, err
+			sha, err := no.GetSha()
+			if err != nil {
+				log.WithError(err).Error("Not able to get sha for image")
+				return "", err
+			}
+			return sha, nil
 
 		}
 	}
