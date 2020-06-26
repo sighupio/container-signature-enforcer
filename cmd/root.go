@@ -31,6 +31,16 @@ type Response struct {
 	Sha256 string `json:"sha256,omitempty"`
 }
 
+func init() {
+	// flags set for the root command and all its subcommands
+	//TODO: remove certs handling
+	rootCmd.PersistentFlags().StringVarP(&globalConfig.TrustRootDir, "trust-root-dir", "d", "/etc/opa-notary-connector/.trust", "Notary trust local cache directory.")
+	rootCmd.PersistentFlags().StringVarP(&globalConfig.TrustConfigPath, "config", "c", "/etc/opa-notary-connector/trust.yaml", "Config file location.")
+	rootCmd.PersistentFlags().StringVarP(&globalConfig.LogLevel, "verbosity", "v", "info", "Log level (one of fatal, error, warn, info or debug)")
+	rootCmd.PersistentFlags().StringVarP(&globalConfig.BindAddress, "listen-address", "l", ":8443", "Address the service should bind to.")
+	rootCmd.AddCommand(defaultConfig)
+}
+
 var (
 	globalConfig = conf.NewGlobaConfig()
 
@@ -103,22 +113,7 @@ var (
 
 			// setup watch for config change and reload if config parseable
 			viper.WatchConfig()
-			viper.OnConfigChange(func(e fsnotify.Event) {
-				logrus.WithField("file", globalConfig.TrustConfigPath).Info("Config file modified.")
-				newConfig := conf.NewConfig()
-				if err := viper.Unmarshal(&newConfig); err != nil {
-					logrus.WithError(err).Error("error unmarshalling new config")
-					return
-				}
-				reloadLogger := logrus.WithField("phase", "reloadConfig")
-				if err := newConfig.Validate(reloadLogger); err != nil {
-					reloadLogger.WithError(err).Error("Error validating new config reloaded, fallbacking to previous one.")
-					return
-				}
-				newConfig.SortRepositories()
-				globalConfig.SetConfig(newConfig)
-				logrus.WithField("config", globalConfig.GetConfig()).Printf("New config loaded")
-			})
+			viper.OnConfigChange(reloadConfig)
 
 			// trustRootDir is the location in which notary library will store its local cache
 			if err := os.MkdirAll(globalConfig.TrustRootDir, 0700); err != nil {
@@ -131,24 +126,11 @@ var (
 			//TODO: remove handleAdmissionRequest
 			// handleAdmissionRequest -> refereeLoop
 			r.POST("/checkImage", refereeLoopHandlerBuilder(globalConfig))
-			r.GET("/health", func(c *gin.Context) {
-				c.String(http.StatusOK, "everything is fine")
+			r.GET("/healthz", func(c *gin.Context) {
+				c.String(http.StatusOK, "this is fine")
 			})
 
-			// run the server using tls certificates if provided
-			if globalConfig.TlsEnabled {
-				//TODO: remove certs
-				logrus.WithFields(logrus.Fields{
-					"tlsEnabled":  globalConfig.TlsEnabled,
-					"tlsCertFile": globalConfig.TlsCertFile,
-					"tlsKeyFile":  globalConfig.TlsKeyFile}).Debug("Starting server")
-				err = r.RunTLS(globalConfig.BindAddress, globalConfig.TlsCertFile, globalConfig.TlsKeyFile)
-			} else {
-				err = r.Run(globalConfig.BindAddress)
-			}
-			if err != nil {
-				logrus.WithField("tlsEnabled", globalConfig.TlsEnabled).WithError(err).Fatal("Error starting server")
-			}
+			err = r.Run(globalConfig.BindAddress)
 		},
 	}
 )
@@ -172,7 +154,7 @@ func refereeLoopHandlerBuilder(config *conf.GlobalConfig) func(c *gin.Context) {
 			return
 		}
 		response := Response{
-			Request: request,
+			Request: *request,
 			Sha256:  sha256,
 		}
 
@@ -181,17 +163,21 @@ func refereeLoopHandlerBuilder(config *conf.GlobalConfig) func(c *gin.Context) {
 
 }
 
-func init() {
-	// flags set for the root command and all its subcommands
-	//TODO: remove certs handling
-	rootCmd.PersistentFlags().BoolVarP(&globalConfig.TlsEnabled, "tls", "t", true, "tls enabled")
-	rootCmd.PersistentFlags().StringVar(&globalConfig.TlsCertFile, "tls-cert", "/etc/opa-notary-connector/tls/cert.pem", "TLS certificate file.")
-	rootCmd.PersistentFlags().StringVar(&globalConfig.TlsKeyFile, "tls-key", "/etc/opa-notary-connector/tls/key.pem", "TLS key file.")
-	rootCmd.PersistentFlags().StringVarP(&globalConfig.TrustRootDir, "trust-root-dir", "d", "/etc/opa-notary-connector/.trust", "Notary trust local cache directory.")
-	rootCmd.PersistentFlags().StringVarP(&globalConfig.TrustConfigPath, "config", "c", "/etc/opa-notary-connector/trust.yaml", "Config file location.")
-	rootCmd.PersistentFlags().StringVarP(&globalConfig.LogLevel, "verbosity", "v", "info", "Log level (one of fatal, error, warn, info or debug)")
-	rootCmd.PersistentFlags().StringVarP(&globalConfig.BindAddress, "listen-address", "l", ":8443", "Address the service should bind to.")
-	rootCmd.AddCommand(defaultConfig)
+func reloadConfig(e fsnotify.Event) {
+	logrus.WithField("file", globalConfig.TrustConfigPath).Info("Config file modified.")
+	newConfig := conf.NewConfig()
+	if err := viper.Unmarshal(&newConfig); err != nil {
+		logrus.WithError(err).Error("error unmarshalling new config")
+		return
+	}
+	reloadLogger := logrus.WithField("phase", "reloadConfig")
+	if err := newConfig.Validate(reloadLogger); err != nil {
+		reloadLogger.WithError(err).Error("Error validating new config reloaded, fallbacking to previous one.")
+		return
+	}
+	newConfig.SortRepositories()
+	globalConfig.SetConfig(newConfig)
+	logrus.WithField("config", globalConfig.GetConfig()).Printf("New config loaded")
 }
 
 func Execute() {
