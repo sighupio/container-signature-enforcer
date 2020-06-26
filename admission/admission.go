@@ -29,7 +29,7 @@ func getContainerSpecPathMap(podSpec *corev1.PodSpec, baseSpecPath string, log *
 // namespace input param will be moved to rego
 // wrap it in handler for body { "image": "...", "namespace": "..." }
 // inject Notary dependency to make it testable
-func Referee(namespace, image string, log *logrus.Entry, config *conf.GlobalConfig) (imageWithSha string, err error) {
+func Referee(namespace, image string, log *logrus.Entry, config *conf.GlobalConfig) (sha string, err error) {
 	repos, err := config.GetMatchingRepositoriesPerImage(strings.Split(image, ":")[0], namespace, log)
 	log.WithFields(logrus.Fields{"image": image, "repos": repos}).Debug("Got matching repos for image")
 

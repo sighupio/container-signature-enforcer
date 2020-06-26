@@ -12,13 +12,10 @@ import (
 )
 
 type GlobalConfig struct {
-	TlsEnabled bool
-	config     *Config
+	config *Config
 	BindAddress,
 	LogLevel,
 	NotaryServer,
-	TlsCertFile,
-	TlsKeyFile,
 	TrustConfigPath,
 	TrustRootDir string
 	Mutex *sync.RWMutex

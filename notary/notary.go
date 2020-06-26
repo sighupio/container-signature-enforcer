@@ -131,7 +131,7 @@ func CheckImage(ref *Reference, rootDir string, repo *config.Repository, client 
 
 	stringDigest := hex.EncodeToString(digest)
 	contextLogger.WithField("digest", stringDigest).Debug("Returning digest for image")
-	return fmt.Sprintf("%s:%s@sha256:%s", ref.name, ref.tag, stringDigest), nil
+	return stringDigest, nil
 }
 
 func makeHubTransport(server, image string, log *logrus.Entry) http.RoundTripper {
