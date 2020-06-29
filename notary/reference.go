@@ -1,6 +1,7 @@
 package notary
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -27,6 +28,11 @@ func NewReference(name string) (*Reference, error) {
 		name = fields[0]
 		digest = fields[1]
 	}
+
+	if !strings.Contains(name, "/") {
+		name = fmt.Sprintf("docker.io/library/%s", name)
+	}
+
 	// Get image name
 	ref, err := reference.ParseNamed(name)
 	if err != nil {
