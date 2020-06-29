@@ -30,7 +30,7 @@ type NotaryRepository struct {
 	reference         *Reference
 }
 
-func NewNotaryRepository(image string, repo *config.Repository, log *logrus.Entry) (*NotaryRepository, error) {
+func New(image string, repo *config.Repository, log *logrus.Entry) (*NotaryRepository, error) {
 	ref, err := NewReference(image)
 	if err != nil {
 		log.WithFields(logrus.Fields{

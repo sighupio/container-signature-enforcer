@@ -46,7 +46,7 @@ func Referee(namespace, image string, log *logrus.Entry, config *conf.GlobalConf
 			return "", nil
 		} else {
 
-			no, err := notary.NewNotaryRepository(image, &repo, log)
+			no, err := notary.New(image, &repo, log)
 
 			if err != nil {
 				log.WithFields(logrus.Fields{

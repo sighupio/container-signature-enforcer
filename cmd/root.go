@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	conf "github.com/sighupio/opa-notary-connector/config"
-	"github.com/sighupio/opa-notary-connector/core"
+	"github.com/sighupio/opa-notary-connector/handlers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
@@ -20,16 +20,6 @@ import (
 const (
 	uuidField = "uuid"
 )
-
-type Request struct {
-	Namespace string `json:"namespace,omitempty"`
-	Image     string `json:"image,omitempty"`
-}
-
-type Response struct {
-	Request
-	Sha256 string `json:"sha256,omitempty"`
-}
 
 func init() {
 	// flags set for the root command and all its subcommands
@@ -125,7 +115,7 @@ var (
 			r.Use(ginLogger(), gin.RecoveryWithWriter(recoveryLogger{}))
 			//TODO: remove handleAdmissionRequest
 			// handleAdmissionRequest -> refereeLoop
-			r.POST("/checkImage", refereeLoopHandlerBuilder(globalConfig))
+			r.POST("/checkImage", handlers.ImageShaBuilder(globalConfig))
 			r.GET("/healthz", func(c *gin.Context) {
 				c.String(http.StatusOK, "this is fine")
 			})
@@ -134,35 +124,6 @@ var (
 		},
 	}
 )
-
-func refereeLoopHandlerBuilder(config *conf.GlobalConfig) func(c *gin.Context) {
-	return func(c *gin.Context) {
-
-		log := logrus.WithField("uuid", c.GetString("uuid"))
-
-		request := new(Request)
-		if err := c.ShouldBindJSON(request); err != nil {
-			log.WithError(err).Error("unable to bind body to Request object")
-			c.AbortWithError(http.StatusBadRequest, err)
-		}
-
-		//TODO remove namespace
-		sha256, err := core.Referee(request.Namespace, request.Image, log, config)
-
-		if err != nil {
-			log.WithError(err).Errorf("there was an error while processing %+v", request)
-			c.AbortWithError(http.StatusBadRequest, err)
-			return
-		}
-		response := Response{
-			Request: *request,
-			Sha256:  sha256,
-		}
-
-		c.JSON(http.StatusOK, response)
-	}
-
-}
 
 func reloadConfig(e fsnotify.Event) {
 	logrus.WithField("file", globalConfig.TrustConfigPath).Info("Config file modified.")
