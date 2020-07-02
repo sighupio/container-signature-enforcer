@@ -34,7 +34,7 @@ type Repository struct {
 	reference         *Reference
 }
 
-func New(image string, repo *config.Repository, log *logrus.Entry) (*Repository, error) {
+func NewWithGetter(image string, repo *config.Repository, getter *AllTargetMetadataByNameGetter, log *logrus.Entry) (*Repository, error) {
 	ref, err := NewReference(image)
 	if err != nil {
 		log.WithFields(logrus.Fields{
@@ -48,6 +48,21 @@ func New(image string, repo *config.Repository, log *logrus.Entry) (*Repository,
 		reference:        ref,
 		log:              log,
 	}
+	no.rolesFound = make(map[data.RoleName]bool)
+	no.rolesToPublicKeys = make(map[data.RoleName]data.PublicKey)
+	no.clientRepository = getter
+
+	return &no, nil
+}
+
+func New(image string, repo *config.Repository, log *logrus.Entry) (*Repository, error) {
+	no, err := NewWithGetter(image, repo, nil, log)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"image":  image,
+			"server": repo.Trust.TrustServer,
+		}).WithError(err).Error("failed image parsing")
+	}
 	err = no.newFileCachedRepository()
 	if err != nil {
 		log.WithFields(logrus.Fields{
@@ -57,7 +72,7 @@ func New(image string, repo *config.Repository, log *logrus.Entry) (*Repository,
 		return nil, err
 	}
 
-	return &no, nil
+	return no, nil
 }
 
 func (no *Repository) getRolesFromSigners(signers []*config.Signer, log *logrus.Entry) (err error) {
@@ -179,12 +194,8 @@ func (no *Repository) newFileCachedRepository() error {
 	if err != nil {
 		contextLogger.WithError(err).Error("Error creating repository")
 	}
-	no.SetFileCachedRepository(&r)
+	no.clientRepository = &r
 	return err
-}
-
-func (no *Repository) SetFileCachedRepository(r *AllTargetMetadataByNameGetter) {
-	no.clientRepository = r
 }
 
 func (no *Repository) makeHubTransport(server, image string, log *logrus.Entry) http.RoundTripper {

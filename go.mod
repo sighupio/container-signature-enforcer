@@ -20,7 +20,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
-	github.com/fatih/color v1.7.0 // indirect
+	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gin-gonic/gin v1.4.1-0.20191101024740-db9174ae0c25
 	github.com/gofrs/uuid v3.2.0+incompatible
@@ -37,7 +37,7 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
-	github.com/mattn/go-colorable v0.1.2 // indirect
+	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/miekg/pkcs11 v1.0.3 // indirect
 	github.com/nbutton23/zxcvbn-go v0.0.0-20180912185939-ae427f1e4c1d // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
@@ -52,6 +52,7 @@ require (
 	github.com/theupdateframework/notary v0.6.1
 	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
+	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
 	google.golang.org/genproto v0.0.0-20190708153700-3bdd9d9f5532 // indirect
 	google.golang.org/grpc v1.22.0 // indirect
 	gopkg.in/dancannon/gorethink.v3 v3.0.5 // indirect

@@ -200,6 +200,7 @@ func (c *Config) SortRepositories() {
 func (c *Config) Validate(log *logrus.Entry) error {
 	for _, repo := range c.Repositories {
 		for _, signer := range repo.Trust.Signers {
+			//TODO move mutex initialization to NewSigner function or something
 			if signer.mutex == nil {
 				log.WithField("signer", signer.Role).Info("Initializing mutex for signer")
 				signer.mutex = new(sync.RWMutex)
