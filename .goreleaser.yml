@@ -11,7 +11,7 @@ builds:
     ldflags:
       - -s -w -X github.com/sighupio/opa-notary-connector/cmd.version={{.Version}} -X github.com/sighupio/opa-notary-connector/cmd.commit={{.Commit}} -X github.com/sighupio/opa-notary-connector/cmd.date={{.Date}}
 checksum:
-  name_template: "{{ .ProjectName }}_checksums.txt"
+  name_template: "{{ .ProjectName }}-checksums.txt"
   algorithm: sha256
 archives:
   - name_template: "{{ .ProjectName }}"
