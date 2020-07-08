@@ -35,10 +35,20 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.LogLevel, "verbosity", "v", "info", "Log level (one of fatal, error, warn, info or debug)")
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.BindAddress, "listen-address", "l", ":8443", "Address the service should bind to.")
 	rootCmd.AddCommand(defaultConfig)
+	rootCmd.AddCommand(versionCmd)
 }
 
 var (
 	globalConfig = conf.NewGlobaConfig()
+
+	versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Prints version information",
+		Long:  ``,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("version: %s\ncommit: %s\ndate: %s\n", version, commit, date)
+		},
+	}
 
 	defaultConfig = &cobra.Command{
 		Use:   "defaultConfig",
