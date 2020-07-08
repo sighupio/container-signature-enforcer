@@ -21,6 +21,12 @@ const (
 	uuidField = "uuid"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func init() {
 	// flags set for the root command and all its subcommands
 	//TODO: remove certs handling
