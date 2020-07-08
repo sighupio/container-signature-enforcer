@@ -7,7 +7,7 @@ WORKDIR /src
 RUN go build -mod vendor -o /opa-notary-connector
 
 
-FROM alpine:3.10
+FROM alpine:3.11
 
 COPY --from=builder /opa-notary-connector /
 
