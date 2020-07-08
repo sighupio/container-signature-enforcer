@@ -10,6 +10,9 @@ builds:
       - CGO_ENABLED=0
     ldflags:
       - -s -w -X github.com/sighupio/opa-notary-connector/cmd.version={{.Version}} -X github.com/sighupio/opa-notary-connector/cmd.commit={{.Commit}} -X github.com/sighupio/opa-notary-connector/cmd.date={{.Date}}
+checksum:
+  name_template: "{{ .ProjectName }}_checksums.txt"
+  algorithm: sha256
 archives:
   - name_template: "{{ .ProjectName }}"
     format: binary
@@ -30,4 +33,4 @@ release:
   github:
     owner: sighupio
     name: opa-notary-connector
-  name_template: "{{.ProjectName}}-v{{.Version}}"
+  name_template: "{{.ProjectName}} v{{.Version}}"
