@@ -40,31 +40,10 @@ steps:
       note: docs/releases/${DRONE_TAG}.md
       overwrite: true
       files:
-        - docs/releases/${DRONE_TAG}.md
+        - LICENSE
     when:
       event: 
         - tag
-
-  # - name: release
-  #   image: docker.io/library/golang:1.14.4-buster
-  #   environment:
-  #     GITHUB_TOKEN:
-  #       from_secret: github_token
-  #     REGISTRY:
-  #       from_secret: registry
-  #     REGISTRY_USER:
-  #       from_secret: registry_user
-  #     REGISTRY_PASSWORD:
-  #       from_secret: registry_password
-  #   volumes:
-  #     - name: deps
-  #       path: /go
-  #     - name: dockersock
-  #       path: /var/run/docker.sock
-  #   commands:
-  #     - curl -L https://get.docker.com | bash
-  #     - docker login -p $${REGISTRY_PASSWORD} -u $${REGISTRY_USER} $${REGISTRY}
-  #     - curl -sL https://git.io/goreleaser | bash
 
 volumes:
   - name: deps
