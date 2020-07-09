@@ -13,9 +13,9 @@ run-ko-not-matching:
 	kubectl run nginx --image nginx:latest
 run-ko-not-signed:
 	kubectl run nginx --image registry.test/test/alpine:3.9
-	
+
 build:
-	docker build -t opa-notary-connector:latest .
+	docker build -t opa-notary-connector:latest -f build/Dockerfile .
 
 sign:
 	@echo todo
