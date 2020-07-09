@@ -46,4 +46,6 @@ type Request struct {
 type Response struct {
 	Request
 	Sha256 string `json:"sha256,omitempty"`
+	//TODO enabled disabled
+	//TODO error
 }

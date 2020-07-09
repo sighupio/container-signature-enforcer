@@ -20,7 +20,9 @@ func TestRepository(t *testing.T) {
 	}
 	conf.Repositories = config.Repositories{
 		config.Repository{
-			Name: "docker.io/.*",
+			//Priority is not checked here
+			Priority: 11,
+			Name:     "docker.io.*",
 			//TODO remove namespace logic
 			Namespace: "sighup",
 			Trust: config.Trust{
@@ -45,6 +47,23 @@ func TestRepository(t *testing.T) {
 	}
 	var fakeMetadataGetter AllTargetMetadataByNameGetter = Fake{
 		map[string][]client.TargetSignedStruct{
+			"not-latest": {
+				client.TargetSignedStruct{
+					Role: data.DelegationRole{
+						BaseRole: data.BaseRole{
+							Name: "targets/sighup",
+							Keys: map[string]data.PublicKey{
+								(*pubKey).ID(): *pubKey,
+							},
+						},
+					},
+					Target: client.Target{
+						Hashes: data.Hashes{
+							notary.SHA256: []byte("not-sighup"),
+						},
+					},
+				},
+			},
 			"latest": {
 				client.TargetSignedStruct{
 					Role: data.DelegationRole{
@@ -62,14 +81,20 @@ func TestRepository(t *testing.T) {
 					},
 				},
 			},
-		}}
+		},
+	}
+
 	var tests = []struct {
 		image              string
 		repo               *config.Repository
 		fakeMetadataGetter *AllTargetMetadataByNameGetter
 		expectedSha        string
 	}{
-		{image: "docker.io/library/alpine", fakeMetadataGetter: &fakeMetadataGetter, repo: &conf.Repositories[0], expectedSha: hex.EncodeToString([]byte("sighup"))},
+		{image: "docker.io/library/alpine", fakeMetadataGetter: &fakeMetadataGetter, repo: &conf.Repositories[0], expectedSha: "sighup"},
+		{image: "docker.io:8080/library/alpine", fakeMetadataGetter: &fakeMetadataGetter, repo: &conf.Repositories[0], expectedSha: "sighup"},
+		{image: "alpine:not-latest", fakeMetadataGetter: &fakeMetadataGetter, repo: &conf.Repositories[0], expectedSha: "not-sighup"},
+		{image: "alpine:latest", fakeMetadataGetter: &fakeMetadataGetter, repo: &conf.Repositories[0], expectedSha: "sighup"},
+		{image: "alpine:not-existing", fakeMetadataGetter: &fakeMetadataGetter, repo: &conf.Repositories[0], expectedSha: ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.image, func(t *testing.T) {
@@ -79,14 +104,15 @@ func TestRepository(t *testing.T) {
 				return
 			}
 
+			encodedExpectedSha := hex.EncodeToString([]byte(tt.expectedSha))
 			sha, err := repo.GetSha()
-			if err != nil {
+			if err != nil && tt.expectedSha != "" {
 				t.Errorf("Got error %s", err.Error())
 				return
 			}
 
-			if sha != tt.expectedSha {
-				t.Errorf("Got %s, expected %s", sha, tt.expectedSha)
+			if sha != encodedExpectedSha {
+				t.Errorf("Got %s, expected %s (original expected: %s)", sha, encodedExpectedSha, tt.expectedSha)
 				return
 			}
 
