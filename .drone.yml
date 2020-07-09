@@ -39,7 +39,8 @@ steps:
       title: Release ${DRONE_TAG}
       note: docs/releases/${DRONE_TAG}.md
       overwrite: true
-      files: []
+      files:
+        - docs/releases/${DRONE_TAG}.md
     when:
       event: 
         - tag
