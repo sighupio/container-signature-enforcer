@@ -1,5 +1,6 @@
+---
 kind: pipeline
-name: release
+name: build
 
 steps:
   - name: test
@@ -10,7 +11,19 @@ steps:
     commands:
       - go test -race -v ./... -cover
 
-  - name: docker
+---
+kind: pipeline
+name: release
+
+depends_on:
+  - build
+
+trigger:
+  event:
+    - tag
+
+steps:
+  - name: container-image
     image: plugins/docker
     settings:
       registry:
@@ -27,11 +40,8 @@ steps:
       build_args:
         - VERSION=${DRONE_TAG}
         - COMMIT=${DRONE_COMMIT}
-    when:
-      event:
-        - tag
 
-  - name: publish
+  - name: github-release
     image: plugins/github-release
     settings:
       api_key:
@@ -41,9 +51,6 @@ steps:
       overwrite: true
       files:
         - LICENSE
-    when:
-      event: 
-        - tag
 
 volumes:
   - name: deps
