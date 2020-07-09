@@ -31,6 +31,19 @@ steps:
       event:
         - tag
 
+  - name: publish
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: github_token
+      title: Release ${DRONE_TAG}
+      note: docs/releases/${DRONE_TAG}.md
+      overwrite: true
+      files: []
+    when:
+      event: 
+        - tag
+
   # - name: release
   #   image: docker.io/library/golang:1.14.4-buster
   #   environment:
