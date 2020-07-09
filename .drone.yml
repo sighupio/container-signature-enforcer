@@ -27,7 +27,6 @@ steps:
       build_args:
         - VERSION=${DRONE_TAG}
         - COMMIT=${DRONE_COMMIT}
-        - DATE=$$(date -u +'%Y-%m-%dT%H:%M:%SZ')
     when:
       event:
         - tag
