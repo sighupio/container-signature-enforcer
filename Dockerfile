@@ -1,11 +1,14 @@
 FROM golang:1.13.7-alpine AS builder
 
-COPY . /src/
+ARG VERSION="dev"
+ARG COMMIT="none"
+ARG DATE="unknown"
+ENV CGO_ENABLED=0
 
+COPY . /src/
 WORKDIR /src
 
-RUN go build -mod vendor -o /opa-notary-connector
-
+RUN go build -ldflags="-s -w -X github.com/sighupio/opa-notary-connector/cmd.version=${VERSION} -X github.com/sighupio/opa-notary-connector/cmd.commit=${COMMIT} -X github.com/sighupio/opa-notary-connector/cmd.date=${DATE}" -mod vendor -o /opa-notary-connector
 
 FROM alpine:3.11
 

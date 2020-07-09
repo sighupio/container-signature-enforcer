@@ -2,14 +2,6 @@ kind: pipeline
 name: release
 
 steps:
-  - name: fetch
-    image: docker:git
-    commands:
-      - git fetch --tags
-    when:
-      event: 
-        - tag
-
   - name: test
     image: golang
     volumes:
@@ -18,29 +10,48 @@ steps:
     commands:
       - go test -race -v ./... -cover
 
-  - name: release
-    image: docker.io/library/golang:1.14.4-buster
-    environment:
-      GITHUB_TOKEN:
-        from_secret: github_token
-      REGISTRY:
+  - name: docker
+    image: plugins/docker
+    settings:
+      registry:
         from_secret: registry
-      REGISTRY_USER:
+      username:
         from_secret: registry_user
-      REGISTRY_PASSWORD:
+      password:
         from_secret: registry_password
-    volumes:
-      - name: deps
-        path: /go
-      - name: dockersock
-        path: /var/run/docker.sock
-    commands:
-      - curl -L https://get.docker.com | bash
-      - docker login -p $${REGISTRY_PASSWORD} -u $${REGISTRY_USER} $${REGISTRY}
-      - curl -sL https://git.io/goreleaser | bash
+      repo: quay.io/sighup/opa-notary-connector
+      dockerfile: build/Dockerfile
+      purge: true
+      force_tag: true
+      auto_tag: true
+      build_args:
+        - VERSION=${DRONE_TAG}
+        - COMMIT=${DRONE_COMMIT}
+        - DATE=$$(date -u +'%Y-%m-%dT%H:%M:%SZ')
     when:
-      event: 
+      event:
         - tag
+
+  # - name: release
+  #   image: docker.io/library/golang:1.14.4-buster
+  #   environment:
+  #     GITHUB_TOKEN:
+  #       from_secret: github_token
+  #     REGISTRY:
+  #       from_secret: registry
+  #     REGISTRY_USER:
+  #       from_secret: registry_user
+  #     REGISTRY_PASSWORD:
+  #       from_secret: registry_password
+  #   volumes:
+  #     - name: deps
+  #       path: /go
+  #     - name: dockersock
+  #       path: /var/run/docker.sock
+  #   commands:
+  #     - curl -L https://get.docker.com | bash
+  #     - docker login -p $${REGISTRY_PASSWORD} -u $${REGISTRY_USER} $${REGISTRY}
+  #     - curl -sL https://git.io/goreleaser | bash
 
 volumes:
   - name: deps
