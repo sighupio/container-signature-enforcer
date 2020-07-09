@@ -1,29 +1,12 @@
 package core
 
 import (
-	"fmt"
 	"strings"
 
 	conf "github.com/sighupio/opa-notary-connector/config"
 	"github.com/sighupio/opa-notary-connector/notary"
 	logrus "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 )
-
-func getContainerSpecPathMap(podSpec *corev1.PodSpec, baseSpecPath string, log *logrus.Entry) map[string][]string {
-	containerSpecPath := map[string][]string{}
-	for i, container := range podSpec.Containers {
-		path := fmt.Sprintf("%s/containers/%d/image", baseSpecPath, i)
-		containerSpecPath[container.Image] = append(containerSpecPath[container.Image], path)
-		log.WithFields(logrus.Fields{"image": container.Image, "index": i, "path": path}).Debug("Retrieved container")
-	}
-	for i, initcontainer := range podSpec.InitContainers {
-		path := fmt.Sprintf("%s/initContainers/%d/image", baseSpecPath, i)
-		containerSpecPath[initcontainer.Image] = append(containerSpecPath[initcontainer.Image], path)
-		log.WithFields(logrus.Fields{"image": initcontainer.Image, "index": i, "path": path}).Debug("Retrieved initContainer")
-	}
-	return containerSpecPath
-}
 
 //TODO:
 // namespace input param will be moved to rego

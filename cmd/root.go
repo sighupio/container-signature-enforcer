@@ -23,7 +23,6 @@ const (
 
 func init() {
 	// flags set for the root command and all its subcommands
-	//TODO: remove certs handling
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.TrustRootDir, "trust-root-dir", "d", "/etc/opa-notary-connector/.trust", "Notary trust local cache directory.")
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.TrustConfigPath, "config", "c", "/etc/opa-notary-connector/trust.yaml", "Config file location.")
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.LogLevel, "verbosity", "v", "info", "Log level (one of fatal, error, warn, info or debug)")
@@ -113,7 +112,6 @@ var (
 			// setup the router
 			r := gin.New()
 			r.Use(ginLogger(), gin.RecoveryWithWriter(recoveryLogger{}))
-			//TODO: remove handleAdmissionRequest
 			// handleAdmissionRequest -> refereeLoop
 			r.POST("/checkImage", handlers.ImageShaBuilder(globalConfig))
 			r.GET("/healthz", func(c *gin.Context) {
