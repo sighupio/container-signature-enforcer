@@ -11,6 +11,10 @@ steps:
     commands:
       - go test -race -v ./... -cover
 
+volumes:
+  - name: deps
+    temp: {}
+
 ---
 kind: pipeline
 name: release
@@ -51,10 +55,3 @@ steps:
       overwrite: true
       files:
         - LICENSE
-
-volumes:
-  - name: deps
-    temp: {}
-  - name: dockersock
-    host:
-      path: /var/run/docker.sock
