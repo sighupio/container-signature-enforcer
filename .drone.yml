@@ -1,0 +1,57 @@
+---
+kind: pipeline
+name: build
+
+steps:
+  - name: test
+    image: golang
+    volumes:
+      - name: deps
+        path: /go
+    commands:
+      - go test -race -v ./... -cover
+
+volumes:
+  - name: deps
+    temp: {}
+
+---
+kind: pipeline
+name: release
+
+depends_on:
+  - build
+
+trigger:
+  event:
+    - tag
+
+steps:
+  - name: container-image
+    image: plugins/docker
+    settings:
+      registry:
+        from_secret: registry
+      username:
+        from_secret: registry_user
+      password:
+        from_secret: registry_password
+      repo: quay.io/sighup/opa-notary-connector
+      dockerfile: build/Dockerfile
+      purge: true
+      force_tag: true
+      auto_tag: true
+      build_args:
+        - VERSION=${DRONE_TAG}
+        - COMMIT=${DRONE_COMMIT}
+
+  - name: github-release
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: github_token
+      title: Release ${DRONE_TAG}
+      note: docs/releases/${DRONE_TAG}.md
+      overwrite: true
+      files:
+        - LICENSE
