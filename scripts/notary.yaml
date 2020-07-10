@@ -1,0 +1,653 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: signer-alias
+  namespace: notary
+data:
+  passphrase: bG9jYWxub3Rhcnk=
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: signer-db-password
+  namespace: notary
+data:
+  password: bG9jYWxub3Rhcnk=
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: server-db-password
+  namespace: notary
+data:
+  password: bG9jYWxub3Rhcnk=
+---
+# Source: notary/templates/configmaps.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notarysql
+  namespace: notary
+data:
+  initial-notaryserver.sql: |
+    CREATE DATABASE IF NOT EXISTS `notaryserver`;
+    
+    CREATE USER "server"@"%" IDENTIFIED BY "%% .Env.SERVERPASSWORD %%";
+    
+    GRANT
+    	ALL PRIVILEGES ON `notaryserver`.* 
+    	TO "server"@"%";
+    
+  initial-notarysigner.sql: |
+    CREATE DATABASE IF NOT EXISTS `notarysigner`;
+    
+    CREATE USER "signer"@"%" IDENTIFIED BY "%% .Env.SIGNERPASSWORD %%";
+    
+    GRANT
+    	ALL PRIVILEGES ON `notarysigner`.* 
+    	TO "signer"@"%";
+---
+# Source: notary/templates/configmaps.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notary-config
+  namespace: notary
+data:
+  server-config.json: |
+    {
+      "server": {
+        "http_addr": ":4443",
+        "tls_key_file": "/tls/server/tls.key",
+        "tls_cert_file": "/tls/server/tls.crt"
+      },
+      "trust_service": {
+        "type": "remote",
+        "hostname": "notary-signer",
+        "port": "7899",
+        "tls_ca_file": "/tls/ca/ca.crt",
+        "key_algorithm": "ecdsa",
+        "tls_client_cert": "/tls/server/tls.crt",
+        "tls_client_key": "/tls/server/tls.key"
+      },
+      "logging": {
+        "level": "debug"
+      },
+      "storage": {
+        "backend": "mysql",
+        "db_url": "server:%% .Env.PASSWORD %%@tcp(notary-db:3306)/notaryserver"
+      },
+      "repositories": {
+        "gun_prefixes": ["docker.io/","registry.local:30001/"]
+      }
+    }
+  signer-config.json: |
+    {
+      "server": {
+        "grpc_addr": ":7899",
+        "tls_cert_file": "/tls/signer/tls.crt",
+        "tls_key_file": "/tls/signer/tls.key",
+        "client_ca_file": "/tls/ca/ca.crt"
+      },
+      "logging": {
+        "level": "debug"
+      },
+      "storage": {
+        "backend": "mysql",
+        "db_url": "signer:%% .Env.PASSWORD %%@tcp(notary-db:3306)/notarysigner",
+        "default_alias": "alias"
+      }
+    }
+---
+# Source: notary/templates/pvcs.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: notary-data
+  namespace: notary
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+# Source: notary/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: notary-signer
+  namespace: notary
+spec:
+  ports:
+  - name: https
+    port: 7899
+    targetPort: 7899
+  selector:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: notary-signer
+---
+# Source: notary/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: notary-server
+  namespace: notary
+spec:
+  ports:
+  - name: https
+    port: 4443
+    targetPort: 4443
+  selector:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: notary-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notary-server-node-port
+  namespace: notary
+spec:
+  type: NodePort
+  ports:
+  - name: https
+    port: 4443
+    targetPort: 4443
+    nodePort: 30003
+  selector:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: notary-server
+---
+# Source: notary/templates/services.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: notary-db
+  namespace: notary
+spec:
+  ports:
+  - name: mysql
+    port: 3306
+    targetPort: 3306
+  selector:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: notary-db
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notary-db
+  namespace: notary
+  labels:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: notary-db
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notary
+      app.kubernetes.io/component: notary-db
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: notary
+        app.kubernetes.io/component: notary-db
+    spec:
+      initContainers:
+      - command:
+        - /gomplate
+        - --left-delim
+        - '%%'
+        - --right-delim
+        - '%%'
+        - --input-dir
+        - /sql-init-templates
+        - --output-dir
+        - /docker-entrypoint-initdb.d
+        image: hairyhenderson/gomplate:v3
+        name: gomplate
+        env:
+        - name: SERVERPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: server-db-password
+              key: password
+              optional: false
+        - name: SIGNERPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: signer-db-password
+              key: password
+              optional: false
+        volumeMounts:
+        - mountPath: /docker-entrypoint-initdb.d
+          name: sql-init
+        - mountPath: /sql-init-templates
+          name: notarysql
+      containers:
+      - args:
+        - mysqld
+        - --innodb_file_per_table
+        env:
+        - name: MYSQL_RANDOM_ROOT_PASSWORD
+          value: "yes"
+        image: mariadb:10.1.28
+        name: mysql
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: notary-data
+        - mountPath: /docker-entrypoint-initdb.d
+          name: sql-init
+        - mountPath: /sql-init-templates
+          name: notarysql
+      volumes:
+      - name: notary-data
+        persistentVolumeClaim:
+          claimName: notary-data
+      - name: notarysql
+        configMap:
+          name: notarysql
+      - name: sql-init
+        emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notary-server
+  namespace: notary
+  labels:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: notary-server
+spec:
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notary
+      app.kubernetes.io/component: notary-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: notary
+        app.kubernetes.io/component: notary-server
+    spec:
+      initContainers:
+      - command:
+        - /gomplate
+        - --left-delim
+        - '%%'
+        - --right-delim
+        - '%%'
+        - --input-dir
+        - /config-template
+        - --output-dir
+        - /config
+        image: hairyhenderson/gomplate:v3
+        name: gomplate
+        env:
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: server-db-password
+              key: password
+              optional: false
+        volumeMounts:
+        - mountPath: /config
+          name: config-rendered
+        - mountPath: /config-template
+          name: config-template
+      containers:
+      - command:
+        - notary-server
+        - -config=/config/server-config.json
+        image: notary:server-0.6.1-2
+        name: server
+        ports:
+        - containerPort: 4443
+          name: https
+        volumeMounts:
+        - mountPath: /config
+          name: config-rendered
+        - mountPath: /tls/server
+          name: tls
+        - mountPath: /tls/ca
+          name: ca
+      volumes:
+      - configMap:
+          name: notary-config
+        name: config-template
+      - secret:
+          secretName: notary-server-crt
+        name: tls
+      - secret:
+          secretName: notary-root-ca
+        name: ca
+      - emptyDir: {}
+        name: config-rendered
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notary-signer
+  namespace: notary
+  labels:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: notary-signer
+spec:
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notary
+      app.kubernetes.io/component: notary-signer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: notary
+        app.kubernetes.io/component: notary-signer
+    spec:
+      initContainers:
+      - command:
+        - /gomplate
+        - --left-delim
+        - '%%'
+        - --right-delim
+        - '%%'
+        - --input-dir
+        - /config-template
+        - --output-dir
+        - /config
+        image: hairyhenderson/gomplate:v3
+        name: gomplate
+        env:
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: signer-db-password
+              key: password
+              optional: false
+        volumeMounts:
+        - mountPath: /config
+          name: config-rendered
+        - mountPath: /config-template
+          name: config-template
+      containers:
+      - command:
+        - notary-signer
+        - -config=/config/signer-config.json
+        image: notary:signer-0.6.1-2
+        name: signer
+        env:
+        - name: NOTARY_SIGNER_ALIAS
+          valueFrom:
+            secretKeyRef:
+              name: signer-alias
+              key: passphrase
+              optional: false
+        ports:
+        - containerPort: 7899
+          name: https
+        volumeMounts:
+        - mountPath: /config
+          name: config-rendered
+        - mountPath: /tls/signer
+          name: tls
+        - mountPath: /tls/ca
+          name: ca
+      volumes:
+      - configMap:
+          name: notary-config
+        name: config-template
+      - secret:
+          secretName: notary-signer-crt
+        name: tls
+      - secret:
+          secretName: notary-root-ca
+        name: ca
+      - emptyDir: {}
+        name: config-rendered
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notary-migrations-server
+  namespace: notary
+data:
+  0001_initial.up.sql: |
+    CREATE TABLE `timestamp_keys` (
+    	  `id` int(11) NOT NULL AUTO_INCREMENT,
+    	  `created_at` timestamp NULL DEFAULT NULL,
+    	  `updated_at` timestamp NULL DEFAULT NULL,
+    	  `deleted_at` timestamp NULL DEFAULT NULL,
+    	  `gun` varchar(255) NOT NULL,
+    	  `cipher` varchar(50) NOT NULL,
+    	  `public` blob NOT NULL,
+    	  PRIMARY KEY (`id`),
+    	  UNIQUE KEY `gun` (`gun`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    
+    CREATE TABLE `tuf_files` (
+    	  `id` int(11) NOT NULL AUTO_INCREMENT,
+    	  `created_at` timestamp NULL DEFAULT NULL,
+    	  `updated_at` timestamp NULL DEFAULT NULL,
+    	  `deleted_at` timestamp NULL DEFAULT NULL,
+    	  `gun` varchar(255) NOT NULL,
+    	  `role` varchar(255) NOT NULL,
+    	  `version` int(11) NOT NULL,
+    	  `data` longblob NOT NULL,
+    	  PRIMARY KEY (`id`),
+    	  UNIQUE KEY `gun` (`gun`,`role`,`version`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    
+  0002_role_on_keys.up.sql: |
+    ALTER TABLE `timestamp_keys` ADD COLUMN `role` VARCHAR(255) NOT NULL, DROP KEY `gun`, ADD UNIQUE KEY `gun_role` (`gun`, `role`);
+    
+    UPDATE `timestamp_keys` SET `role`="timestamp";
+    
+  0003_add_sha256_tuf_files.up.sql: |
+    ALTER TABLE `tuf_files` ADD COLUMN `sha256` CHAR(64) DEFAULT NULL, ADD INDEX `sha256` (`sha256`);
+    
+    -- SHA2 function takes the column name or a string as the first parameter, and the 
+    -- hash size as the second argument. It returns a hex string.
+    UPDATE `tuf_files` SET `sha256` = SHA2(`data`, 256);
+    
+  0004_drop_timestamp_key.up.sql: |
+    DROP TABLE IF EXISTS `timestamp_keys`;
+  0005_changefeed.up.sql: |
+    CREATE TABLE `change_category` (
+        `category` VARCHAR(20) NOT NULL,
+        PRIMARY KEY (`category`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    
+    INSERT INTO `change_category` VALUES ("update"), ("deletion");
+    
+    CREATE TABLE `changefeed` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+        `gun` varchar(255) NOT NULL,
+        `version` int(11) NOT NULL,
+        `sha256` CHAR(64) DEFAULT NULL,
+        `category` VARCHAR(20) NOT NULL DEFAULT "update",
+        PRIMARY KEY (`id`),
+        FOREIGN KEY (`category`) REFERENCES `change_category` (`category`),
+        INDEX `idx_changefeed_gun` (`gun`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    
+    INSERT INTO `changefeed` (
+            `created_at`,
+            `gun`,
+            `version`,
+            `sha256` 
+        ) (SELECT
+            `created_at`,
+            `gun`,
+            `version`,
+            `sha256`
+        FROM
+            `tuf_files`
+        WHERE
+            `role` = "timestamp"
+        ORDER BY
+            `created_at` ASC
+    );
+---
+# Source: notary/templates/configmaps.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notary-migrations-signer
+  namespace: notary
+data:
+  0001_initial.up.sql: |
+    CREATE TABLE `private_keys` (
+    	  `id` int(11) NOT NULL AUTO_INCREMENT,
+    	  `created_at` timestamp NULL DEFAULT NULL,
+    	  `updated_at` timestamp NULL DEFAULT NULL,
+    	  `deleted_at` timestamp NULL DEFAULT NULL,
+    	  `key_id` varchar(255) NOT NULL,
+    	  `encryption_alg` varchar(255) NOT NULL,
+    	  `keywrap_alg` varchar(255) NOT NULL,
+    	  `algorithm` varchar(50) NOT NULL,
+    	  `passphrase_alias` varchar(50) NOT NULL,
+    	  `public` blob NOT NULL,
+    	  `private` blob NOT NULL,
+    	  PRIMARY KEY (`id`),
+    	  UNIQUE KEY `key_id` (`key_id`),
+    	  UNIQUE KEY `key_id_2` (`key_id`,`algorithm`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    
+  0002_gun_role_on_keys.up.sql: |
+    ALTER TABLE `private_keys` ADD COLUMN `gun` VARCHAR(255) NOT NULL, ADD COLUMN `role` VARCHAR(255) NOT NULL, ADD COLUMN `last_used` DATETIME NULL DEFAULT NULL;
+---
+# Source: notary/templates/jobs.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: notary-server-migrate
+  namespace: notary
+  labels:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: notary-server-migrate
+spec:
+  completions: 1
+  parallelism: 1
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: notary
+          app.kubernetes.io/component: notary-server-migrate
+    spec:
+      initContainers:
+      - command:
+        - /gomplate
+        - --left-delim
+        - '%%'
+        - --right-delim
+        - '%%'
+        - --in
+        - "server:%% .Env.PASSWORD %%@tcp(notary-db:3306)/notaryserver"
+        - --out
+        - /migrate-configuration/db-url
+        image: hairyhenderson/gomplate:v3
+        name: gomplate
+        env:
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: server-db-password
+              key: password
+        volumeMounts:
+        - mountPath: /migrate-configuration
+          name: migrate-configuration
+      containers:
+      - command:
+        - sh
+        - -c
+        - /migrate -path=/migrations/server/mysql -database=mysql://$(cat /migrate-configuration/db-url) up
+        image: migrate/migrate:v4.6.2
+        name: migrate
+        volumeMounts:
+        - mountPath: /migrations/server/mysql
+          name: migrations-server
+        - mountPath: /migrate-configuration
+          name: migrate-configuration
+      restartPolicy: OnFailure
+      volumes:
+      - configMap:
+          name: notary-migrations-server
+        name: migrations-server
+      - emptyDir: {}
+        name: migrate-configuration
+---
+# Source: notary/templates/jobs.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: notary-signer-migrate
+  namespace: notary
+  labels:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: notary-signer-migrate
+spec:
+  completions: 1
+  parallelism: 1
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+        labels:
+          app.kubernetes.io/name: notary
+          app.kubernetes.io/component: notary-signer-migrate
+    spec:
+      initContainers:
+      - command:
+        - /gomplate
+        - --left-delim
+        - '%%'
+        - --right-delim
+        - '%%'
+        - --in
+        - "signer:%% .Env.PASSWORD %%@tcp(notary-db:3306)/notarysigner"
+        - --out
+        - /migrate-configuration/db-url
+        image: hairyhenderson/gomplate:v3
+        name: gomplate
+        env:
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: signer-db-password
+              key: password
+        volumeMounts:
+        - mountPath: /migrate-configuration
+          name: migrate-configuration
+      containers:
+      - command:
+        - sh
+        - -c
+        - /migrate -path=/migrations/signer/mysql -database=mysql://$(cat /migrate-configuration/db-url) up
+        image: migrate/migrate:v4.6.2
+        name: migrate
+        volumeMounts:
+        - mountPath: /migrations/signer/mysql
+          name: migrations-signer
+        - mountPath: /migrate-configuration
+          name: migrate-configuration
+      restartPolicy: OnFailure
+      volumes:
+      - configMap:
+          name: notary-migrations-signer
+        name: migrations-signer
+      - emptyDir: {}
+        name: migrate-configuration

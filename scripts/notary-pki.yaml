@@ -1,0 +1,101 @@
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: notary-root
+  namespace: notary
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: notary-root-ca
+  namespace: notary
+spec:
+  # name of the tls secret to store
+  # the generated certificate/key pair
+  secretName: notary-root-ca
+  isCA: true
+  issuerRef:
+    # issuer created in step 1
+    name: notary-root
+    kind: Issuer
+  commonName: "notary"
+  dnsNames:
+  # one or more fully-qualified domain name
+  # can be defined here
+    - notary
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: notary-root-ca
+  namespace: notary
+spec:
+  ca:
+    secretName: notary-root-ca
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: notary-signer
+  namespace: notary
+spec:
+  # Secret names are always required.
+  secretName: notary-signer-crt
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  organization:
+  - notary
+  commonName: notary-signer
+  isCA: false
+  keySize: 521
+  keyAlgorithm: ecdsa
+  keyEncoding: pkcs1
+  usages:
+    - server auth
+    - client auth
+    - digital signature
+    - key encipherment
+  dnsNames:
+    - notary-signer
+    - notarysigner
+    - localhost
+    - notary-signer.local
+    - notary-signer.localhost
+  issuerRef:
+    name: notary-root-ca
+    kind: Issuer
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: notary-server
+  namespace: notary
+spec:
+  # Secret names are always required.
+  secretName: notary-server-crt
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  organization:
+  - notary
+  commonName: notary-server
+  isCA: false
+  keySize: 521
+  keyAlgorithm: ecdsa
+  keyEncoding: pkcs1
+  usages:
+    - server auth
+    - client auth
+    - digital signature
+    - key encipherment
+  dnsNames:
+    - notary-server
+    - notaryserver
+    - localhost
+    - notary-server.local
+    - notary-server.localhost
+  issuerRef:
+    name: notary-root-ca
+    kind: Issuer

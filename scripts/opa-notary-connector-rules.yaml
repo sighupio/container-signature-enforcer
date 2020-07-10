@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-notary-connector-rules
+  namespace: webhook
+  labels:
+    openpolicyagent.org/policy: rego
+data:
+  rules.rego: |-
+    package kubernetes.admission
+
+    deny[msg] {
+      msg := "Don't want to work today"
+    }
