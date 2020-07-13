@@ -64,8 +64,6 @@ type Repository struct {
 	// The name of the repository, used to match images to policies.
 	// Regexes are accepted (e.g. "registry/test/alpine.*", or "registry/.*")
 	Name string `mapstructure:"name"`
-	// Regex used to restrict to specific namespaces
-	Namespace string `mapstructure:"namespace"`
 	// Specifies the policy to be applied when the Name regex matches the container image.
 	Trust    Trust `mapstructure:"trust"`
 	Priority int   `mapstructure:"priority"`
@@ -151,35 +149,23 @@ func (s *Signer) parsePEM(log *logrus.Entry) error {
 }
 
 // given an image filter out the matching repositories
-func (gc *GlobalConfig) GetMatchingRepositoriesPerImage(image, namespace string, log *logrus.Entry) ([]Repository, error) {
+func (gc *GlobalConfig) GetMatchingRepositoriesPerImage(image string, log *logrus.Entry) ([]Repository, error) {
 	c := gc.GetConfig()
 	c.SortRepositories()
 	repos := Repositories{}
 	contextLogger := log.WithField("image", image)
 	contextLogger.WithField("repositories", c.Repositories).Debug("searching for matching repos for image")
-	atLeastOneNamespaceMatched := false
 	for _, repo := range c.Repositories {
-		matchedNamespace, err := regexp.Match(repo.Namespace, []byte(namespace))
+		matched, err := regexp.Match(repo.Name, []byte(image))
 		if err != nil {
-			contextLogger.WithError(err).WithField("repo", repo).Error("namespace regex error")
+			contextLogger.WithError(err).Error("Error matching repo regex to image")
 		}
-		if matchedNamespace {
-			atLeastOneNamespaceMatched = true
-			matched, err := regexp.Match(repo.Name, []byte(image))
-			if err != nil {
-				contextLogger.WithError(err).Error("Error matching repo regex to image")
-			}
-			if matched {
-				contextLogger.Debug("Adding repo to returned repos because matched image")
-				repos = append(repos, repo)
-			}
+		if matched {
+			contextLogger.Debug("Adding repo to returned repos because matched image")
+			repos = append(repos, repo)
 		}
 	}
-	if !atLeastOneNamespaceMatched {
-		contextLogger.Debug("no namespace matched")
-		return nil, ErrNoNamespaceMatched{}
-	} else if atLeastOneNamespaceMatched && len(repos) <= 0 {
-		contextLogger.WithField("namespace", namespace).Debug("no repositories matched")
+	if len(repos) <= 0 {
 		return nil, ErrNoRepositoryMatched{}
 	}
 	contextLogger.WithField("repos", repos).Debug("Returning matched repositories")

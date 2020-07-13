@@ -1,19 +1,19 @@
-package core
+package handlers
 
 import (
 	"strings"
 
 	conf "github.com/sighupio/opa-notary-connector/config"
 	"github.com/sighupio/opa-notary-connector/notary"
-	logrus "github.com/sirupsen/logrus"
+
+	"github.com/sirupsen/logrus"
 )
 
 //TODO:
-// namespace input param will be moved to rego
 // wrap it in handler for body { "image": "...", "namespace": "..." }
 // inject Notary dependency to make it testable
-func Referee(namespace, image string, log *logrus.Entry, config *conf.GlobalConfig) (sha string, err error) {
-	repos, err := config.GetMatchingRepositoriesPerImage(strings.Split(image, ":")[0], namespace, log)
+func Referee(image string, log *logrus.Entry, config *conf.GlobalConfig) (sha string, err error) {
+	repos, err := config.GetMatchingRepositoriesPerImage(strings.Split(image, ":")[0], log)
 	log.WithFields(logrus.Fields{"image": image, "repos": repos}).Debug("Got matching repos for image")
 
 	// if no repository matched, default deny and send

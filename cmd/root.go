@@ -57,8 +57,7 @@ var (
 			config, err := yaml.Marshal(conf.Config{
 				Repositories: conf.Repositories{
 					conf.Repository{
-						Name:      "registry.test/.*",
-						Namespace: "prod-.*",
+						Name: "registry.test/.*",
 						Trust: conf.Trust{
 							Enabled:     true,
 							TrustServer: "https://notary-server:4443",

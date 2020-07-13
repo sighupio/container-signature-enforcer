@@ -5,13 +5,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	conf "github.com/sighupio/opa-notary-connector/config"
-	"github.com/sighupio/opa-notary-connector/core"
 	"github.com/sirupsen/logrus"
 )
 
 func ImageShaBuilder(config *conf.GlobalConfig) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
+		response := Response{}
 		log := logrus.WithField("uuid", c.GetString("uuid"))
 
 		request := new(Request)
@@ -20,18 +20,19 @@ func ImageShaBuilder(config *conf.GlobalConfig) func(c *gin.Context) {
 			c.AbortWithError(http.StatusBadRequest, err)
 		}
 
-		//TODO remove namespace
-		sha256, err := core.Referee(request.Namespace, request.Image, log, config)
+		sha256, err := Referee(request.Image, log, config)
 
 		if err != nil {
 			log.WithError(err).Errorf("there was an error while processing %+v", request)
-			c.AbortWithError(http.StatusBadRequest, err)
+			response.OK = false
+			response.Err = err.Error()
+			c.AbortWithStatusJSON(http.StatusBadRequest, response)
 			return
 		}
-		response := Response{
-			Request: *request,
-			Sha256:  sha256,
-		}
+
+		response.OK = true
+		response.Request = *request
+		response.Sha256 = sha256
 
 		c.JSON(http.StatusOK, response)
 	}
@@ -46,6 +47,6 @@ type Request struct {
 type Response struct {
 	Request
 	Sha256 string `json:"sha256,omitempty"`
-	//TODO enabled disabled
-	//TODO error
+	OK     bool   `json:"ok"`
+	Err    string `json:"error,omitempty"`
 }
