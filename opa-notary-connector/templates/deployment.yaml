@@ -166,6 +166,9 @@ spec:
             - proxy
             - --accept-paths=^/apis/authorization.k8s.io/v1/subjectaccessreviews$
 {{- end }}
+{{- if .Values.extraContainers }}
+{{ toYaml .Values.extraContainers | indent 8}}
+{{- end }}
       {{- if .Values.securityContext.enabled }}
       securityContext:
         {{- range $key, $val := .Values.securityContext }}
@@ -176,6 +179,9 @@ spec:
       {{- end }}
       serviceAccountName: {{ template "opa.serviceAccountName" .}}
       volumes:
+{{- if .Values.extraVolumes }}
+{{ toYaml .Values.extraVolumes | indent 8}}
+{{- end }}
         - name: certs
           secret:
             secretName: {{ template "opa.fullname" . }}-cert
