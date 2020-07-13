@@ -128,7 +128,7 @@ var (
 			r := gin.New()
 			r.Use(ginLogger(), gin.RecoveryWithWriter(recoveryLogger{}))
 			// handleAdmissionRequest -> refereeLoop
-			r.POST("/checkImage", handlers.ImageShaBuilder(globalConfig))
+			r.POST("/checkImage", handlers.CheckImageHandlerBuilder(globalConfig))
 			r.GET("/healthz", func(c *gin.Context) {
 				c.String(http.StatusOK, "this is fine")
 			})
