@@ -59,6 +59,7 @@ require (
 	gopkg.in/fatih/pool.v2 v2.0.0 // indirect
 	gopkg.in/gorethink/gorethink.v3 v3.0.5 // indirect
 	gopkg.in/yaml.v2 v2.2.4
+	honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc
 	k8s.io/api v0.0.0-20191102065807-b98ecd433b91
 	k8s.io/apimachinery v0.0.0-20191116203941-08e4eafd6d11 // indirect
 	mvdan.cc/unparam v0.0.0-20190310220240-1b9ccfa71afe // indirect
