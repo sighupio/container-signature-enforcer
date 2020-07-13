@@ -15,8 +15,7 @@ type GlobalConfig struct {
 	config *Config
 	BindAddress,
 	LogLevel,
-	NotaryServer,
-	TrustConfigPath,
+	ConfigPath,
 	TrustRootDir string
 	Mutex *sync.RWMutex
 }
@@ -149,8 +148,7 @@ func (s *Signer) parsePEM(log *logrus.Entry) error {
 }
 
 // given an image filter out the matching repositories
-func (gc *GlobalConfig) GetMatchingRepositoriesPerImage(image string, log *logrus.Entry) ([]Repository, error) {
-	c := gc.GetConfig()
+func (c *Config) GetMatchingRepositoriesPerImage(image string, log *logrus.Entry) ([]Repository, error) {
 	c.SortRepositories()
 	repos := Repositories{}
 	contextLogger := log.WithField("image", image)

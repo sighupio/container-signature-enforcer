@@ -30,7 +30,7 @@ var (
 func init() {
 	// flags set for the root command and all its subcommands
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.TrustRootDir, "trust-root-dir", "d", "/etc/opa-notary-connector/.trust", "Notary trust local cache directory.")
-	rootCmd.PersistentFlags().StringVarP(&globalConfig.TrustConfigPath, "config", "c", "/etc/opa-notary-connector/trust.yaml", "Config file location.")
+	rootCmd.PersistentFlags().StringVarP(&globalConfig.ConfigPath, "config", "c", "/etc/opa-notary-connector/trust.yaml", "Config file location.")
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.LogLevel, "verbosity", "v", "info", "Log level (one of fatal, error, warn, info or debug)")
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.BindAddress, "listen-address", "l", ":8443", "Address the service should bind to.")
 	rootCmd.AddCommand(defaultConfig)
@@ -84,7 +84,7 @@ var (
 
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			// needed settings
-			viper.SetConfigFile(globalConfig.TrustConfigPath)
+			viper.SetConfigFile(globalConfig.ConfigPath)
 			level, err := logrus.ParseLevel(globalConfig.LogLevel)
 			if err != nil {
 				logrus.WithField("logLevel", globalConfig.LogLevel).WithError(err).Fatal("Log level not parsable")
@@ -106,7 +106,7 @@ var (
 			if err = viper.Unmarshal(globalConfig.GetConfig()); err != nil {
 				logrus.WithError(err).Fatal("Error unmarshalling config into struct")
 			} else {
-				logrus.WithFields(logrus.Fields{"config": globalConfig.GetConfig(), "file": globalConfig.TrustConfigPath}).Info("Read config at startup.")
+				logrus.WithFields(logrus.Fields{"config": globalConfig.GetConfig(), "file": globalConfig.ConfigPath}).Info("Read config at startup.")
 			}
 
 			startupLogger := logrus.WithField("phase", "startup")
@@ -128,7 +128,7 @@ var (
 			r := gin.New()
 			r.Use(ginLogger(), gin.RecoveryWithWriter(recoveryLogger{}))
 			// handleAdmissionRequest -> refereeLoop
-			r.POST("/checkImage", handlers.CheckImageHandlerBuilder(globalConfig))
+			r.POST("/checkImage", handlers.CheckImageHandlerBuilder(globalConfig.GetConfig()))
 			r.GET("/healthz", func(c *gin.Context) {
 				c.String(http.StatusOK, "this is fine")
 			})
@@ -139,7 +139,7 @@ var (
 )
 
 func reloadConfig(e fsnotify.Event) {
-	logrus.WithField("file", globalConfig.TrustConfigPath).Info("Config file modified.")
+	logrus.WithField("file", globalConfig.ConfigPath).Info("Config file modified.")
 	newConfig := conf.NewConfig()
 	if err := viper.Unmarshal(&newConfig); err != nil {
 		logrus.WithError(err).Error("error unmarshalling new config")

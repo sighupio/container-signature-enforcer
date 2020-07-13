@@ -21,7 +21,7 @@ type Response struct {
 	Err    string `json:"error,omitempty"`
 }
 
-func CheckImageHandlerBuilder(config *conf.GlobalConfig) func(c *gin.Context) {
+func CheckImageHandlerBuilder(config *conf.Config) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
 		response := Response{}
@@ -52,7 +52,7 @@ func CheckImageHandlerBuilder(config *conf.GlobalConfig) func(c *gin.Context) {
 
 }
 
-func CheckImage(image string, log *logrus.Entry, config *conf.GlobalConfig) (sha string, err error) {
+func CheckImage(image string, log *logrus.Entry, config *conf.Config) (sha string, err error) {
 	repos, err := config.GetMatchingRepositoriesPerImage(strings.Split(image, ":")[0], log)
 	log.WithFields(logrus.Fields{"image": image, "repos": repos}).Debug("Got matching repos for image")
 
