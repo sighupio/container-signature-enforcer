@@ -27,8 +27,11 @@ func TestParsingGlobalConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testcase, func(t *testing.T) {
 			c := NewGlobalConfig()
-			yaml.Unmarshal([]byte(tt.config), c)
-			c.GetConfig()
+			err := yaml.Unmarshal([]byte(tt.config), c.GetConfig())
+			if err != nil {
+				t.Errorf("got error while parsing config: %s", err.Error())
+				return
+			}
 		})
 	}
 
