@@ -38,7 +38,7 @@ func init() {
 }
 
 var (
-	globalConfig = conf.NewGlobaConfig()
+	globalConfig = conf.NewGlobalConfig()
 
 	versionCmd = &cobra.Command{
 		Use:   "version",

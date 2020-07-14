@@ -13,8 +13,9 @@ type GlobalConfig struct {
 	Mutex *sync.RWMutex
 }
 
-func NewGlobaConfig() *GlobalConfig {
+func NewGlobalConfig() *GlobalConfig {
 	g := &GlobalConfig{}
+	g.config = &Config{}
 	g.Mutex = new(sync.RWMutex)
 	return g
 }
