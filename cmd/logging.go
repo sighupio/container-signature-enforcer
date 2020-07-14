@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -48,12 +47,4 @@ func ginLogger() gin.HandlerFunc {
 			},
 		).Info("Request Processed")
 	}
-}
-
-type recoveryLogger struct {
-}
-
-func (l recoveryLogger) Write(p []byte) (n int, err error) {
-	logrus.WithField("panic", true).Error(strings.Split("\n", string(p)))
-	return len(p), nil
 }

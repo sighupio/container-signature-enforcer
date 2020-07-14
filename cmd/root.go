@@ -124,8 +124,7 @@ var (
 
 			// setup the router
 			r := gin.New()
-			r.Use(ginLogger(), gin.RecoveryWithWriter(recoveryLogger{}))
-			// handleAdmissionRequest -> refereeLoop
+			r.Use(gin.Recovery())
 			r.POST("/checkImage", handlers.CheckImageHandlerBuilder(globalConfig.GetConfig()))
 			r.GET("/healthz", func(c *gin.Context) {
 				c.String(http.StatusOK, "this is fine")
