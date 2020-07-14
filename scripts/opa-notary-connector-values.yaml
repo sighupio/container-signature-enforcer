@@ -61,18 +61,27 @@ bootstrapPolicies:
     default response = {"allowed": true}
 
     response = {
-        "allowed": false,
-        "status": {
-            "reason": reason,
-        },
+      "allowed": false,
+      "status": {"reason": reason},
     } {
-        reason = concat(", ", admission.deny)
-        reason != ""
+      reason = concat(", ", admission.deny)
+      reason != ""
     }
 
+    response = {
+      "allowed": true,
+      "patchType": "JSONPatch",
+      "patch": patch_bytes,
+    } {
+      reason = concat(", ", admission.deny)
+      reason == ""
+      patch = {xw | xw := admission.patches[_][_]}
+      patch_json = json.marshal(patch)
+      patch_bytes = base64.encode(patch_json)
+    }
 
 # To enforce mutating policies, change to MutatingWebhookConfiguration.
-admissionControllerKind: ValidatingWebhookConfiguration
+admissionControllerKind: MutatingWebhookConfiguration
 
 # To _fail closed_ on failures, change to Fail. During initial testing, we
 # recommend leaving the failure policy as Ignore.

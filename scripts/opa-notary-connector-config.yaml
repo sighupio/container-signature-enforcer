@@ -37,6 +37,19 @@ data:
   rules.rego: |-
     package kubernetes.admission
 
+    image = {
+      "Pod": "spec/containers/%v/image",
+      "Deployment": "spec/template/spec/containers/%v/image",
+      "Daemonset": "spec/template/spec/containers/%v/image",
+      "Job": "spec/template/spec/containers/%v/image",
+      "CronJob": "spec/jobTemplate/spec/template/spec/containers/%v/image",
+      "ReplicationController": "spec/template/spec/containers/%v/image",
+      "StatefulSet": "spec/template/spec/containers/%v/image",
+      "ReplicaSet": "spec/template/spec/containers/%v/image"
+    }
+
     deny[msg] {
-      msg := "Don't want to work today"
+      path_template := image[input.request.kind.kind]
+      path := sprintf(path_template, [1])
+      msg := sprintf("Don't want to work today %v", [path])
     }
