@@ -60,6 +60,9 @@ spec:
     - key encipherment
   dnsNames:
     - notary-signer
+    - notary-signer.notary
+    - notary-signer.notary.svc
+    - notary-signer.notary.svc.cluster.local
     - notarysigner
     - localhost
     - notary-signer.local
@@ -92,6 +95,9 @@ spec:
     - key encipherment
   dnsNames:
     - notary-server
+    - notary-server.notary
+    - notary-server.notary.svc
+    - notary-server.notary.svc.cluster.local
     - notaryserver
     - localhost
     - notary-server.local
