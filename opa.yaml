@@ -190,13 +190,56 @@ spec:
             - name: bootstrap
               readOnly: true
               mountPath: /bootstrap
+        - args:
+          - --config=/etc/opa-notary-connector/trust.yaml
+          - --listen-address=:8080
+          - --trust-root-dir=/etc/opa-notary-connector/.trust
+          - --verbosity=debug
+          command:
+          - /opa-notary-connector
+          env:
+          - name: GIN_MODE
+            value: debug
+          image: localhost:30001/opa-notary-connector:latest
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+              scheme: HTTP
+          name: opa-notary-connector
+          ports:
+          - containerPort: 8080
+            name: http
+            protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+              scheme: HTTP
+          securityContext:
+            runAsUser: 1001
+          volumeMounts:
+          - mountPath: /etc/opa-notary-connector/trust.yaml
+            name: opa-notary-connector-config
+            subPath: trust.yaml
+          - mountPath: /etc/ssl/certs/tls.crt
+            name: notary-server-crt
+            subPath: tls.crt
       securityContext:
+        fsGroup: 
+          1001
         runAsNonRoot: 
           true
         runAsUser: 
           1
       serviceAccountName: opa-notary-connector
       volumes:
+        - configMap:
+            name: opa-notary-connector-config
+          name: opa-notary-connector-config
+        - name: notary-server-crt
+          secret:
+            secretName: notary-server-crt
         - name: certs
           secret:
             secretName: opa-notary-connector-cert
