@@ -255,9 +255,63 @@ securityContext:
   enabled: true
   runAsNonRoot: true
   runAsUser: 1
+  fsGroup: 1001
 
 deploymentStrategy: {}
   # rollingUpdate:
   #   maxSurge: 1
   #   maxUnavailable: 0
   # type: RollingUpdate
+
+extraContainers:
+## Additional containers to be added to the opa pod.
+- name: opa-notary-connector
+  image: localhost:30001/opa-notary-connector:latest
+  securityContext:
+    runAsUser: 1001
+  command: ["/opa-notary-connector"]
+  args:
+    - "--config=/etc/opa-notary-connector/trust.yaml"
+    - "--listen-address=:8080"
+    - "--trust-root-dir=/etc/opa-notary-connector/.trust"
+    - "--verbosity=debug"
+  env:
+    - name: GIN_MODE
+      value: debug
+  ports:
+    - name: http
+      containerPort: 8080
+      protocol: TCP
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      scheme: HTTP
+      port: http
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      scheme: HTTP
+      port: http
+  volumeMounts:
+    - name: opa-notary-connector-config
+      mountPath: /etc/opa-notary-connector/trust.yaml
+      subPath: trust.yaml
+    - name: notary-server-crt
+      mountPath: /etc/ssl/certs/tls.crt
+      subPath: tls.crt
+
+extraVolumes:
+## Additional volumes to the opa pod.
+- name: opa-notary-connector-config
+  configMap:
+    name: opa-notary-connector-config
+- name: notary-server-crt
+  secret:
+    secretName: notary-server-crt
+
+extraPorts: []
+## Additional ports to the opa services. Useful to expose extra container ports.
+# - port: 11811
+#   protocol: TCP
+#   name: http
+#   targetPort: http
