@@ -306,9 +306,8 @@ extraContainers:
       mountPath: /etc/opa-notary-connector/trust.yaml
       subPath: trust.yaml
     - name: notary-server-crt
-      mountPath: /etc/ssl/certs/tls.crt
-      subPath: tls.crt
-
+      mountPath: /etc/ssl/certs/ca.crt
+      subPath: ca.crt
 extraVolumes:
 ## Additional volumes to the opa pod.
 - name: opa-notary-connector-config
