@@ -20,8 +20,7 @@ LABEL org.opencontainers.image.version=${VERSION}
 COPY --from=builder /opa-notary-connector /
 
 RUN mkdir /etc/opa-notary-connector && \
-    chgrp -R 0 /etc/opa-notary-connector && \
-    chmod -R g=u /etc/opa-notary-connector
+    chown 1001:1001 /etc/opa-notary-connector
 
 USER 1001
 CMD ["/opa-notary-connector", "--help"]
