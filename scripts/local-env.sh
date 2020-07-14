@@ -62,7 +62,10 @@ kubectl wait --for=condition=Ready certs --timeout=3m -n notary --all
 kubectl apply -f scripts/notary.yaml
 kubectl wait --for=condition=Available deployment --timeout=3m -n notary --all
 
-echo "4. Finish!"
+echo "4. Copying notary-server certificates to webhook namespace"
+kubectl get secret notary-server-crt -n notary -o yaml | sed s@"namespace: notary"@"namespace: webhook"@ | kubectl apply -n webhook -f -
+
+echo "5. Finish!"
 cat << EOF
 Congratulations!!!
 Your local environment has been created.
@@ -78,13 +81,13 @@ notary-server.local uses port 30003 in your local computer
 Follow the commands bellow to test your setup:
 
 # Clean before tests
-$ rm -rf ~/.docker/trust/tuf/registry.local\:30001/
+$ rm -rf ~/.docker/trust/tuf/localhost\:30001/
 
 # Get the crt from the notary-server
 $ echo | openssl s_client -servername notary-server.local -connect notary-server.local:30003 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /tmp/notary-tls.crt
 
 # Init a repository inside notary-server
-$ notary -D -p -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert /tmp/notary-tls.crt init registry.local:30001/alpine
+$ notary -D -p -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert /tmp/notary-tls.crt init localhost:30001/alpine
 
 # Gen a private key, csr and crt
 $ openssl genrsa -out /tmp/delegation.key 2048
@@ -93,16 +96,16 @@ $ openssl req -new -sha256 -key /tmp/delegation.key -out /tmp/delegation.csr
 $ openssl x509 -req -sha256 -days 365 -in /tmp/delegation.csr -signkey /tmp/delegation.key -out /tmp/delegation.crt
 
 # Rotate notary repository keys
-$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert /tmp/notary-tls.crt key rotate registry.local:30001/alpine snapshot -r
-$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert /tmp/notary-tls.crt publish registry.local:30001/alpine
+$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert /tmp/notary-tls.crt key rotate localhost:30001/alpine snapshot -r
+$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert /tmp/notary-tls.crt publish localhost:30001/alpine
 
 # Pull an example image, tag them sign and push
 $ docker pull alpine:3.10
-$ docker tag alpine:3.10 registry.local:30001/alpine:3.10
+$ docker tag alpine:3.10 localhost:30001/alpine:3.10
 # Set up correct environment variables to enable notary
 $ export DOCKER_CONTENT_TRUST=1
 $ export DOCKER_CONTENT_TRUST_SERVER=https://notary-server.local:30003
 $ docker trust key load /tmp/delegation.key --name jenkins
-$ docker trust signer add --key /tmp/delegation.crt jenkins registry.local:30001/alpine
-$ docker push registry.local:30001/alpine:3.10
+$ docker trust signer add --key /tmp/delegation.crt jenkins localhost:30001/alpine
+$ docker push localhost:30001/alpine:3.10
 EOF

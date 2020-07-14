@@ -79,7 +79,7 @@ data:
         "db_url": "server:%% .Env.PASSWORD %%@tcp(notary-db:3306)/notaryserver"
       },
       "repositories": {
-        "gun_prefixes": ["docker.io/","registry.local:30001/"]
+        "gun_prefixes": ["registry.local:30001/","localhost:30001/"]
       }
     }
   signer-config.json: |

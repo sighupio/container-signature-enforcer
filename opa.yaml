@@ -323,7 +323,7 @@ spec:
     secretName: opa-notary-connector-ca
 ---
 # Source: opa/templates/webhookconfiguration.yaml
-kind: ValidatingWebhookConfiguration
+kind: MutatingWebhookConfiguration
 apiVersion: admissionregistration.k8s.io/v1beta1
 metadata:
   name: opa-notary-connector
