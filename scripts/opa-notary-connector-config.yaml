@@ -65,12 +65,55 @@ data:
       x := true
     }
 
+    is_cronjob(k) = x {
+      k != "Pod"
+      k != "Deployment"
+      k != "Daemonset"
+      k != "Job"
+      k != "ReplicationController"
+      k != "StatefulSet"
+      k != "ReplicaSet"
+      x := true
+    }
+
+    not_pod_and_not_cronjob(k) = x {
+      k != "Pod"
+      k != "CronJob"
+      x := true
+    }
+
     deny[msg] {
       is_pod(input.request.kind.kind)
 
       some j;
       container_image = input.request.object.spec.containers[j].image
-      
+
+      response := req_opa_notary_connector(container_image)
+      response.status_code != 200
+      error_message := response.body.error
+
+      msg := sprintf("Container image %v invalid: %v", [container_image, error_message])
+    }
+
+    deny[msg] {
+      is_cronjob(input.request.kind.kind)
+
+      some j;
+      container_image = input.request.object.spec.jobTemplate.spec.template.spec.containers[j].image
+
+      response := req_opa_notary_connector(container_image)
+      response.status_code != 200
+      error_message := response.body.error
+
+      msg := sprintf("Container image %v invalid: %v", [container_image, error_message])
+    }
+
+    deny[msg] {
+      not_pod_and_not_cronjob(input.request.kind.kind)
+
+      some j;
+      container_image = input.request.object.spec.template.spec.containers[j].image
+
       response := req_opa_notary_connector(container_image)
       response.status_code != 200
       error_message := response.body.error
@@ -83,6 +126,32 @@ data:
 
       some j;
       container_image = input.request.object.spec.containers[j].image
+
+      response := req_opa_notary_connector(container_image)
+      response.status_code == 200
+      new_container_image := response.body.image
+
+      patch := gen_patch(input.request.kind.kind, j, new_container_image)
+    }
+
+    patches["cronjob_sha"] = patch {
+      is_cronjob(input.request.kind.kind)
+
+      some j;
+      container_image = input.request.object.spec.jobTemplate.spec.template.spec.containers[j].image
+
+      response := req_opa_notary_connector(container_image)
+      response.status_code == 200
+      new_container_image := response.body.image
+
+      patch := gen_patch(input.request.kind.kind, j, new_container_image)
+    }
+
+    patches["others_sha"] = patch {
+      not_pod_and_not_cronjob(input.request.kind.kind)
+
+      some j;
+      container_image = input.request.object.spec.template.spec.containers[j].image
 
       response := req_opa_notary_connector(container_image)
       response.status_code == 200
