@@ -54,31 +54,32 @@ data:
       x := http.send(request)
     }
 
+    is_pod(k) = x {
+      k != "CronJob"
+      k != "Deployment"
+      k != "Daemonset"
+      k != "Job"
+      k != "ReplicationController"
+      k != "StatefulSet"
+      k != "ReplicaSet"
+      x := true
+    }
+
     deny[msg] {
-      input.request.kind.kind != "CronJob"
-      input.request.kind.kind != "Deployment"
-      input.request.kind.kind != "Daemonset"
-      input.request.kind.kind != "Job"
-      input.request.kind.kind != "ReplicationController"
-      input.request.kind.kind != "StatefulSet"
-      input.request.kind.kind != "ReplicaSet"
+      is_pod(input.request.kind.kind)
 
       some j;
       container_image = input.request.object.spec.containers[j].image
+      
       response := req_opa_notary_connector(container_image)
       response.status_code != 200
       error_message := response.body.error
+
       msg := sprintf("Container image %v invalid: %v", [container_image, error_message])
     }
 
     patches["pod_sha"] = patch {
-      input.request.kind.kind != "CronJob"
-      input.request.kind.kind != "Deployment"
-      input.request.kind.kind != "Daemonset"
-      input.request.kind.kind != "Job"
-      input.request.kind.kind != "ReplicationController"
-      input.request.kind.kind != "StatefulSet"
-      input.request.kind.kind != "ReplicaSet"
+      is_pod(input.request.kind.kind)
 
       some j;
       container_image = input.request.object.spec.containers[j].image
