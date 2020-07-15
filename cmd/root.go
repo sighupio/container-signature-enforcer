@@ -17,10 +17,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const (
-	uuidField = "uuid"
-)
-
 var (
 	version = "dev"
 	commit  = "none"

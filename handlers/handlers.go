@@ -10,6 +10,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	UUIDField = "uuid"
+)
+
 type Request struct {
 	Image string `json:"image,omitempty"`
 }
@@ -25,7 +29,7 @@ func CheckImageHandlerBuilder(config *conf.Config) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
 		response := Response{}
-		log := logrus.WithField("uuid", c.GetString("uuid"))
+		log := logrus.WithField(UUIDField, c.GetString(UUIDField))
 
 		request := new(Request)
 		if err := c.ShouldBindJSON(request); err != nil {
