@@ -5,6 +5,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/sighupio/opa-notary-connector/reference"
+	"github.com/sirupsen/logrus"
 )
 
 func TestParsingConfig(t *testing.T) {
@@ -70,7 +71,7 @@ func TestParsingConfig(t *testing.T) {
 				t.Errorf("got error while validating: %s", err.Error())
 				return
 			}
-			ref, _ := reference.NewReference(tt.image)
+			ref, _ := reference.NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
 			repos, err := c.GetMatchingRepositoriesPerImage(ref, log)
 			if err != nil {
 				t.Errorf("got error while getting matching repos for image %s: %s", tt.image, err.Error())

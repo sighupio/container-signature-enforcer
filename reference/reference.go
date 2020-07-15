@@ -3,6 +3,8 @@ package reference
 import (
 	"regexp"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Reference .
@@ -22,7 +24,7 @@ var (
 )
 
 // NewReference parses the image name and returns an error if the name is invalid.
-func NewReference(name string) (*Reference, error) {
+func NewReference(name string, log *logrus.Entry) (*Reference, error) {
 	reference := &Reference{}
 	reference.Original = name
 
@@ -51,6 +53,8 @@ func NewReference(name string) (*Reference, error) {
 		reference.Hostname = res[1] // host capture group index
 		reference.Port = res[4]     // port capture group index, could be empty string if not matched
 	}
+
+	log.WithFields(logrus.Fields{"name": name, "reference": reference}).Debug("Obtained reference from name")
 
 	return reference, nil
 }

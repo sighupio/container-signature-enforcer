@@ -2,6 +2,8 @@ package reference
 
 import (
 	"testing"
+
+	"github.com/sirupsen/logrus"
 )
 
 func TestReferenceOK(t *testing.T) {
@@ -18,7 +20,7 @@ func TestReferenceOK(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.image, func(t *testing.T) {
-			ref, err := NewReference(tt.image)
+			ref, err := NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
 			if err != nil {
 				t.Errorf("Got error %s", err.Error())
 				return

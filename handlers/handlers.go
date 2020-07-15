@@ -59,7 +59,7 @@ func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 }
 
 func CheckImage(image string, config *conf.Config, trustRootDir string, log *logrus.Entry) (sha string, err error) {
-	ref, _ := reference.NewReference(image)
+	ref, _ := reference.NewReference(image, log)
 	repos, err := config.GetMatchingRepositoriesPerImage(ref, log)
 	log.WithFields(logrus.Fields{"image": image, "repos": repos}).Debug("Got matching repos for image")
 
