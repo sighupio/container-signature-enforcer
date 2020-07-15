@@ -1,11 +1,8 @@
 package notary
 
 import (
-	"fmt"
-	"net/url"
+	"regexp"
 	"strings"
-
-	"github.com/docker/distribution/reference"
 )
 
 // Reference .
@@ -18,59 +15,42 @@ type Reference struct {
 	port     string
 }
 
+var (
+	digestRegex = regexp.MustCompile("@sha256:(?P<sha256>[a-fA-F0-9]+)$")
+	tagRegex    = regexp.MustCompile(":(?P<tag>[^/]+)$")
+	hostRegex   = regexp.MustCompile("^(?P<host>[^/^:]*)(/|(:(?P<port>[0-9]+)))")
+)
+
 // NewReference parses the image name and returns an error if the name is invalid.
 func NewReference(name string) (*Reference, error) {
-	var digest string
-	original := name
-	// Remove the digest so `ParseNamed` doesn't fail, it can't handle short digests.
-	if strings.Contains(name, "@sha256:") {
-		fields := strings.Split(name, "@sha256:")
-		name = fields[0]
-		digest = fields[1]
-	}
+	reference := &Reference{}
+	reference.original = name
 
 	if !strings.Contains(name, "/") {
-		name = fmt.Sprintf("docker.io/library/%s", name)
+		name = "docker.io/library/" + name
 	}
 
-	// Get image name
-	ref, err := reference.ParseNamed(name)
-	if err != nil {
-		return nil, err
+	if digestRegex.MatchString(name) {
+		res := digestRegex.FindStringSubmatch(name)
+		reference.digest = res[1] // digest capture group index
+		name = strings.TrimSuffix(name, res[0])
+	}
+	if tagRegex.MatchString(name) {
+		res := tagRegex.FindStringSubmatch(name)
+		reference.tag = res[1] // tag capture group index
+		name = strings.TrimSuffix(name, res[0])
+	} else {
+		reference.tag = "latest"
 	}
 
-	// Get the hostname
-	hostname, _ := reference.SplitHostname(ref)
-	if hostname == "" {
-		// If no domain found, treat it as docker.io
-		hostname = "docker.io"
-	}
-	if !strings.Contains(hostname, ".") {
-		// Fix SplitHostname wrongly splitting repositories like molepigeon/wibble
-		hostname = "docker.io"
-	}
-	// Make sure it can be used to build a valid URL
-	u, err := url.Parse("http://" + hostname)
-	if err != nil {
-		return nil, err
+	// everything else is the name
+	reference.name = name
+
+	if hostRegex.MatchString(name) {
+		res := hostRegex.FindStringSubmatch(name)
+		reference.hostname = res[1] // host capture group index
+		reference.port = res[4]     // port capture group index, could be empty string if not matched
 	}
 
-	// if the image does not have a tag, use `latest` so we can parse it again.
-	image := strings.Replace(name, hostname, "", 1)
-	if !strings.Contains(image, ":") {
-		name += ":latest"
-	}
-
-	// Parse the name again including the tag so we can have a reference.taggedReference object
-	// we ommit the error here since we already parsed the original string above.
-	ref, _ = reference.ParseNamed(name)
-
-	return &Reference{
-		original: original,
-		name:     ref.Name(),
-		tag:      ref.(reference.Tagged).Tag(),
-		digest:   digest,
-		hostname: u.Hostname(),
-		port:     u.Port(),
-	}, nil
+	return reference, nil
 }

@@ -13,6 +13,8 @@ func TestReferenceOK(t *testing.T) {
 		{image: "alpine", original: "alpine", name: "docker.io/library/alpine", tag: "latest", digest: "", hostname: "docker.io", port: ""},
 		{image: "alpine@sha256:2bb501e6173d9d006e56de5bce2720eb06396803300fe1687b58a7ff32bf4c14", original: "alpine@sha256:2bb501e6173d9d006e56de5bce2720eb06396803300fe1687b58a7ff32bf4c14", name: "docker.io/library/alpine", tag: "latest", digest: "2bb501e6173d9d006e56de5bce2720eb06396803300fe1687b58a7ff32bf4c14", hostname: "docker.io", port: ""},
 		{image: "registry.hub.docker.com:8080/library/alpine:test", original: "registry.hub.docker.com:8080/library/alpine:test", name: "registry.hub.docker.com:8080/library/alpine", tag: "test", digest: "", hostname: "registry.hub.docker.com", port: "8080"},
+		{image: "localhost:30001/alpine:3.10", original: "localhost:30001/alpine:3.10", name: "localhost:30001/alpine", tag: "3.10", digest: "", hostname: "localhost", port: "30001"},
+		{image: "localhost/alpine:3.10", original: "localhost/alpine:3.10", name: "localhost/alpine", tag: "3.10", digest: "", hostname: "localhost", port: ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.image, func(t *testing.T) {
