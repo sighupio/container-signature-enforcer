@@ -59,14 +59,20 @@ func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 }
 
 func CheckImage(image string, config *conf.Config, trustRootDir string, log *logrus.Entry) (sha string, err error) {
+	log = log.WithField("image", image)
+
 	ref, _ := reference.NewReference(image, log)
+	log.WithField("ref", ref).Debug("Got reference")
+
 	repos, err := config.GetMatchingRepositoriesPerImage(ref, log)
-	log.WithFields(logrus.Fields{"image": image, "repos": repos}).Debug("Got matching repos for image")
 
 	// if no repository matched, default deny and send
 	if err != nil {
+		log.WithError(err).Error("Got error when getting matching")
 		return "", err
 	}
+
+	log.WithField("repos", repos).Debug("Got matching repos for image")
 
 	// repos are sorted by priority, therefore the first to be matched is the one with highest priority,
 	// no other repos should be checked
@@ -79,10 +85,7 @@ func CheckImage(image string, config *conf.Config, trustRootDir string, log *log
 			no, err := notary.New(ref, &repo, trustRootDir, log)
 
 			if err != nil {
-				log.WithFields(logrus.Fields{
-					"image":  image,
-					"server": repo.Trust.TrustServer,
-				}).WithError(err).Error("Not able to create cached repository for image")
+				log.WithField("server", repo.Trust.TrustServer).WithError(err).Error("Not able to create cached repository for image")
 				return "", err
 			}
 

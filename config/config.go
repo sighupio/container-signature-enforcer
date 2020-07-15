@@ -21,7 +21,7 @@ func (c *Config) GetMatchingRepositoriesPerImage(image *reference.Reference, log
 	contextLogger := log.WithField("image", image)
 	contextLogger.WithField("repositories", c.Repositories).Debug("searching for matching repos for image")
 	for _, repo := range c.Repositories {
-		matched, err := regexp.Match(repo.Name, []byte(image.Name))
+		matched, err := regexp.MatchString(repo.Name, image.Name)
 		if err != nil {
 			contextLogger.WithError(err).Error("Error matching repo regex to image")
 		}
@@ -41,8 +41,7 @@ func (c *Config) Validate(log *logrus.Entry) error {
 	for _, repo := range c.Repositories {
 		for _, signer := range repo.Trust.Signers {
 			//TODO move mutex initialization to NewSigner function or something
-			err := signer.ParsePEM(log)
-			if err != nil {
+			if err := signer.ParsePEM(log); err != nil {
 				log.WithError(err).WithFields(logrus.Fields{"signer": signer, "repo": repo}).Error("Unable to parse signer public key")
 				return err
 			}

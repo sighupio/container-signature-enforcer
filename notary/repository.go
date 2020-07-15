@@ -37,14 +37,14 @@ type Repository struct {
 
 func NewWithGetter(ref *reference.Reference, repo *config.Repository, getter *AllTargetMetadataByNameGetter, trustRootDir string, log *logrus.Entry) (*Repository, error) {
 	no := Repository{
-		configRepository: repo,
-		reference:        ref,
-		log:              log,
+		configRepository:  repo,
+		reference:         ref,
+		log:               log,
+		rolesFound:        make(map[data.RoleName]bool),
+		rolesToPublicKeys: make(map[data.RoleName]data.PublicKey),
+		clientRepository:  getter,
+		trustRootDir:      trustRootDir,
 	}
-	no.rolesFound = make(map[data.RoleName]bool)
-	no.rolesToPublicKeys = make(map[data.RoleName]data.PublicKey)
-	no.clientRepository = getter
-	no.trustRootDir = trustRootDir
 
 	return &no, nil
 }
