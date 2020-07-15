@@ -121,7 +121,7 @@ var (
 			// setup the router
 			r := gin.New()
 			r.Use(ginLogger())
-			r.Use(gin.Recovery())
+			r.Use(recoveryLogger())
 			//TODO move to customRecovery to log with logrus on panic, will be available in next gin release
 			//r.Use(gin.CustomRecovery())
 			r.POST("/checkImage", handlers.CheckImageHandlerBuilder(globalConfig))
