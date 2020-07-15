@@ -97,7 +97,7 @@ func TestRepository(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.image, func(t *testing.T) {
-			repo, err := NewWithGetter(tt.image, tt.repo, tt.fakeMetadataGetter, log)
+			repo, err := NewWithGetter(tt.image, tt.repo, tt.fakeMetadataGetter, "", log)
 			if err != nil {
 				t.Errorf("Got error %s", err.Error())
 				return

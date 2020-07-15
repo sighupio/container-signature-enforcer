@@ -38,7 +38,7 @@ func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 			c.AbortWithError(http.StatusBadRequest, err)
 		}
 
-		sha256, err := CheckImage(request.Image, log, config)
+		sha256, err := CheckImage(request.Image, config, gc.TrustRootDir, log)
 
 		if err != nil {
 			log.WithError(err).Errorf("there was an error while processing %+v", request)
@@ -57,7 +57,7 @@ func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 
 }
 
-func CheckImage(image string, log *logrus.Entry, config *conf.Config) (sha string, err error) {
+func CheckImage(image string, config *conf.Config, trustRootDir string, log *logrus.Entry) (sha string, err error) {
 	repos, err := config.GetMatchingRepositoriesPerImage(strings.Split(image, ":")[0], log)
 	log.WithFields(logrus.Fields{"image": image, "repos": repos}).Debug("Got matching repos for image")
 
@@ -74,7 +74,7 @@ func CheckImage(image string, log *logrus.Entry, config *conf.Config) (sha strin
 			return "", nil
 		} else {
 
-			no, err := notary.New(image, &repo, log)
+			no, err := notary.New(image, &repo, trustRootDir, log)
 
 			if err != nil {
 				log.WithFields(logrus.Fields{

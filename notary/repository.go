@@ -28,13 +28,13 @@ type Repository struct {
 	rolesFound        map[data.RoleName]bool
 	rolesToPublicKeys map[data.RoleName]data.PublicKey
 	clientRepository  *AllTargetMetadataByNameGetter
-	config            *config.GlobalConfig
+	trustRootDir      string
 	configRepository  *config.Repository
 	log               *logrus.Entry
 	reference         *Reference
 }
 
-func NewWithGetter(image string, repo *config.Repository, getter *AllTargetMetadataByNameGetter, log *logrus.Entry) (*Repository, error) {
+func NewWithGetter(image string, repo *config.Repository, getter *AllTargetMetadataByNameGetter, trustRootDir string, log *logrus.Entry) (*Repository, error) {
 	ref, err := NewReference(image)
 	if err != nil {
 		log.WithFields(logrus.Fields{
@@ -51,12 +51,13 @@ func NewWithGetter(image string, repo *config.Repository, getter *AllTargetMetad
 	no.rolesFound = make(map[data.RoleName]bool)
 	no.rolesToPublicKeys = make(map[data.RoleName]data.PublicKey)
 	no.clientRepository = getter
+	no.trustRootDir = trustRootDir
 
 	return &no, nil
 }
 
-func New(image string, repo *config.Repository, log *logrus.Entry) (*Repository, error) {
-	no, err := NewWithGetter(image, repo, nil, log)
+func New(image string, repo *config.Repository, trustRootDir string, log *logrus.Entry) (*Repository, error) {
+	no, err := NewWithGetter(image, repo, nil, trustRootDir, log)
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"image":  image,
@@ -183,7 +184,7 @@ func (no *Repository) newFileCachedRepository() error {
 	// initialize the repo
 	var r AllTargetMetadataByNameGetter
 	r, err := client.NewFileCachedRepository(
-		no.config.TrustRootDir,
+		no.trustRootDir,
 		data.GUN(no.reference.name),
 		no.configRepository.Trust.TrustServer,
 		no.makeHubTransport(no.configRepository.Trust.TrustServer, no.reference.name, contextLogger),
