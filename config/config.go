@@ -16,8 +16,7 @@ type Config struct {
 }
 
 // given an image filter out the matching repositories
-func (c *Config) GetMatchingRepositoriesPerImage(image *reference.Reference, log *logrus.Entry) ([]Repository, error) {
-	repos := Repositories{}
+func (c *Config) GetMatchingRepositoriesPerImage(image *reference.Reference, log *logrus.Entry) (repos Repositories, err error) {
 	contextLogger := log.WithField("image", image)
 	contextLogger.WithField("repositories", c.Repositories).Debug("searching for matching repos for image")
 	for _, repo := range c.Repositories {
@@ -30,7 +29,7 @@ func (c *Config) GetMatchingRepositoriesPerImage(image *reference.Reference, log
 			repos = append(repos, repo)
 		}
 	}
-	if len(repos) <= 0 {
+	if len(repos) == 0 {
 		return nil, ErrNoRepositoryMatched{}
 	}
 	contextLogger.WithField("repos", repos).Debug("Returning matched repositories")

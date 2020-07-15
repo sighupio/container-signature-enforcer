@@ -119,20 +119,25 @@ var (
 			}
 
 			// setup the router
-			r := gin.New()
-			r.Use(ginLogger())
-			r.Use(recoveryLogger())
-			//TODO move to customRecovery to log with logrus on panic, will be available in next gin release
-			//r.Use(gin.CustomRecovery())
-			r.POST("/checkImage", handlers.CheckImageHandlerBuilder(globalConfig))
-			r.GET("/healthz", func(c *gin.Context) {
-				c.String(http.StatusOK, "this is fine")
-			})
-
+			r := setupServer()
 			err = r.Run(globalConfig.BindAddress)
 		},
 	}
 )
+
+func setupServer() *gin.Engine {
+	r := gin.New()
+	r.Use(ginLogger())
+	r.Use(recoveryLogger())
+	//TODO move to customRecovery to log with logrus on panic, will be available in next gin release
+	//r.Use(gin.CustomRecovery())
+	r.POST("/checkImage", handlers.CheckImageHandlerBuilder(globalConfig))
+	r.GET("/healthz", func(c *gin.Context) {
+		c.String(http.StatusOK, "this is fine")
+	})
+
+	return r
+}
 
 func reloadConfig(e fsnotify.Event) {
 	logrus.WithField("file", globalConfig.ConfigPath).Info("Config file modified.")
