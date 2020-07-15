@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	conf "github.com/sighupio/opa-notary-connector/config"
 	"github.com/sighupio/opa-notary-connector/notary"
+	"github.com/sighupio/opa-notary-connector/reference"
 	"github.com/sirupsen/logrus"
 )
 
@@ -58,7 +58,8 @@ func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 }
 
 func CheckImage(image string, config *conf.Config, trustRootDir string, log *logrus.Entry) (sha string, err error) {
-	repos, err := config.GetMatchingRepositoriesPerImage(strings.Split(image, ":")[0], log)
+	ref, _ := reference.NewReference(image)
+	repos, err := config.GetMatchingRepositoriesPerImage(ref, log)
 	log.WithFields(logrus.Fields{"image": image, "repos": repos}).Debug("Got matching repos for image")
 
 	// if no repository matched, default deny and send
@@ -74,7 +75,7 @@ func CheckImage(image string, config *conf.Config, trustRootDir string, log *log
 			return "", nil
 		} else {
 
-			no, err := notary.New(image, &repo, trustRootDir, log)
+			no, err := notary.New(ref, &repo, trustRootDir, log)
 
 			if err != nil {
 				log.WithFields(logrus.Fields{

@@ -13,6 +13,7 @@ import (
 	"github.com/docker/distribution/registry/client/auth/challenge"
 	"github.com/docker/distribution/registry/client/transport"
 	"github.com/sighupio/opa-notary-connector/config"
+	"github.com/sighupio/opa-notary-connector/reference"
 	"github.com/theupdateframework/notary"
 	"github.com/theupdateframework/notary/client"
 	"github.com/theupdateframework/notary/trustpinning"
@@ -31,18 +32,10 @@ type Repository struct {
 	trustRootDir      string
 	configRepository  *config.Repository
 	log               *logrus.Entry
-	reference         *Reference
+	reference         *reference.Reference
 }
 
-func NewWithGetter(image string, repo *config.Repository, getter *AllTargetMetadataByNameGetter, trustRootDir string, log *logrus.Entry) (*Repository, error) {
-	ref, err := NewReference(image)
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"image":  image,
-			"server": repo.Trust.TrustServer,
-		}).WithError(err).Error("Image was not parsable")
-		return nil, err
-	}
+func NewWithGetter(ref *reference.Reference, repo *config.Repository, getter *AllTargetMetadataByNameGetter, trustRootDir string, log *logrus.Entry) (*Repository, error) {
 	no := Repository{
 		configRepository: repo,
 		reference:        ref,
@@ -56,18 +49,18 @@ func NewWithGetter(image string, repo *config.Repository, getter *AllTargetMetad
 	return &no, nil
 }
 
-func New(image string, repo *config.Repository, trustRootDir string, log *logrus.Entry) (*Repository, error) {
-	no, err := NewWithGetter(image, repo, nil, trustRootDir, log)
+func New(ref *reference.Reference, repo *config.Repository, trustRootDir string, log *logrus.Entry) (*Repository, error) {
+	no, err := NewWithGetter(ref, repo, nil, trustRootDir, log)
 	if err != nil {
 		log.WithFields(logrus.Fields{
-			"image":  image,
+			"image":  ref,
 			"server": repo.Trust.TrustServer,
 		}).WithError(err).Error("failed image parsing")
 	}
 	err = no.newFileCachedRepository()
 	if err != nil {
 		log.WithFields(logrus.Fields{
-			"image":  image,
+			"image":  ref,
 			"server": repo.Trust.TrustServer,
 		}).WithError(err).Error("failed creating file cached repository")
 		return nil, err
@@ -104,7 +97,7 @@ func (no *Repository) GetSha() (string, error) {
 
 	no.getRolesFromSigners(no.configRepository.Trust.Signers, contextLogger)
 
-	targets, err := (*no.clientRepository).GetAllTargetMetadataByName(no.reference.tag)
+	targets, err := (*no.clientRepository).GetAllTargetMetadataByName(no.reference.Tag)
 
 	contextLogger.WithFields(logrus.Fields{"ref": no.reference, "targets": targets}).Debug("Retrieved targets for image from server")
 	if err != nil {
@@ -179,15 +172,15 @@ func (no *Repository) getShaFromTargets(targets []client.TargetSignedStruct, log
 
 // reference is notary lingo for image
 func (no *Repository) newFileCachedRepository() error {
-	contextLogger := no.log.WithFields(logrus.Fields{"image": no.reference.original, "server": no.configRepository.Trust.TrustServer})
+	contextLogger := no.log.WithFields(logrus.Fields{"image": no.reference.Original, "server": no.configRepository.Trust.TrustServer})
 	contextLogger.WithField("signers", no.configRepository.Trust.Signers).Debug("Checking image against server for signers")
 	// initialize the repo
 	var r AllTargetMetadataByNameGetter
 	r, err := client.NewFileCachedRepository(
 		no.trustRootDir,
-		data.GUN(no.reference.name),
+		data.GUN(no.reference.Name),
 		no.configRepository.Trust.TrustServer,
-		no.makeHubTransport(no.configRepository.Trust.TrustServer, no.reference.name, contextLogger),
+		no.makeHubTransport(no.configRepository.Trust.TrustServer, no.reference.Name, contextLogger),
 		nil, //no need for passRetriever ATM
 		//TODO: pass the notary CA explicitly via conf
 		trustpinning.TrustPinConfig{},

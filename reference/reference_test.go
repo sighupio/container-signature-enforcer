@@ -1,4 +1,4 @@
-package notary
+package reference
 
 import (
 	"testing"
@@ -27,23 +27,23 @@ func TestReferenceOK(t *testing.T) {
 				t.Errorf("Got nil ref for %s", tt.original)
 				return
 			}
-			if ref.original != tt.original {
-				t.Errorf("wanted %s, got %s as original", tt.original, ref.original)
+			if ref.Original != tt.original {
+				t.Errorf("wanted %s, got %s as original", tt.original, ref.Original)
 			}
-			if ref.name != tt.name {
-				t.Errorf("wanted %s, got %s as name", tt.name, ref.name)
+			if ref.Name != tt.name {
+				t.Errorf("wanted %s, got %s as name", tt.name, ref.Name)
 			}
-			if ref.tag != tt.tag {
-				t.Errorf("wanted %s, got %s as tag", tt.tag, ref.tag)
+			if ref.Tag != tt.tag {
+				t.Errorf("wanted %s, got %s as tag", tt.tag, ref.Tag)
 			}
-			if ref.digest != tt.digest {
-				t.Errorf("wanted %s, got %s as digest", tt.digest, ref.digest)
+			if ref.Digest != tt.digest {
+				t.Errorf("wanted %s, got %s as digest", tt.digest, ref.Digest)
 			}
-			if ref.hostname != tt.hostname {
-				t.Errorf("wanted %s, got %s as hostname", tt.hostname, ref.hostname)
+			if ref.Hostname != tt.hostname {
+				t.Errorf("wanted %s, got %s as hostname", tt.hostname, ref.Hostname)
 			}
-			if ref.port != tt.port {
-				t.Errorf("wanted %s, got %s as port", tt.port, ref.port)
+			if ref.Port != tt.port {
+				t.Errorf("wanted %s, got %s as port", tt.port, ref.Port)
 			}
 		})
 	}

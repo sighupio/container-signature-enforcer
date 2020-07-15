@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"sort"
 
+	"github.com/sighupio/opa-notary-connector/reference"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,12 +16,12 @@ type Config struct {
 }
 
 // given an image filter out the matching repositories
-func (c *Config) GetMatchingRepositoriesPerImage(image string, log *logrus.Entry) ([]Repository, error) {
+func (c *Config) GetMatchingRepositoriesPerImage(image *reference.Reference, log *logrus.Entry) ([]Repository, error) {
 	repos := Repositories{}
 	contextLogger := log.WithField("image", image)
 	contextLogger.WithField("repositories", c.Repositories).Debug("searching for matching repos for image")
 	for _, repo := range c.Repositories {
-		matched, err := regexp.Match(repo.Name, []byte(image))
+		matched, err := regexp.Match(repo.Name, []byte(image.Name))
 		if err != nil {
 			contextLogger.WithError(err).Error("Error matching repo regex to image")
 		}

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ghodss/yaml"
+	"github.com/sighupio/opa-notary-connector/reference"
 )
 
 func TestParsingConfig(t *testing.T) {
@@ -69,7 +70,8 @@ func TestParsingConfig(t *testing.T) {
 				t.Errorf("got error while validating: %s", err.Error())
 				return
 			}
-			repos, err := c.GetMatchingRepositoriesPerImage(tt.image, log)
+			ref, _ := reference.NewReference(tt.image)
+			repos, err := c.GetMatchingRepositoriesPerImage(ref, log)
 			if err != nil {
 				t.Errorf("got error while getting matching repos for image %s: %s", tt.image, err.Error())
 				return
