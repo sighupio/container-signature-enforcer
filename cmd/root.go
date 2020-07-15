@@ -125,6 +125,8 @@ var (
 			// setup the router
 			r := gin.New()
 			r.Use(gin.Recovery())
+			//TODO move to customRecovery to log with logrus on panic, will be available in next gin release
+			//r.Use(gin.CustomRecovery())
 			r.POST("/checkImage", handlers.CheckImageHandlerBuilder(globalConfig.GetConfig()))
 			r.GET("/healthz", func(c *gin.Context) {
 				c.String(http.StatusOK, "this is fine")
