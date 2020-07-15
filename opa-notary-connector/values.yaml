@@ -246,9 +246,9 @@ extraContainers: []
 #   image: example/example-app:latest
 #   args:
 #     - "run"
-#     - "--port 11811"
+#     - "--port=11811"
 #     - "--config=/etc/example-app-conf/config.yaml"
-#     - "--opa-endpoint=http://localhost:8443"
+#     - "--opa-endpoint=https://localhost:443"
 #   ports:
 #     - name: http
 #       containerPort: 11811
