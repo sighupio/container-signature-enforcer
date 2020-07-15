@@ -25,8 +25,9 @@ type Response struct {
 	Err    string `json:"error,omitempty"`
 }
 
-func CheckImageHandlerBuilder(config *conf.Config) func(c *gin.Context) {
+func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		config := gc.GetConfig()
 
 		response := Response{}
 		log := logrus.WithField(UUIDField, c.GetString(UUIDField))
