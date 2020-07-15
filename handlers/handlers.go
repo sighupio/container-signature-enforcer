@@ -36,6 +36,7 @@ func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 		if err := c.ShouldBindJSON(request); err != nil {
 			log.WithError(err).Error("unable to bind body to Request object")
 			c.AbortWithError(http.StatusBadRequest, err)
+			return
 		}
 
 		sha256, err := CheckImage(request.Image, config, gc.TrustRootDir, log)
