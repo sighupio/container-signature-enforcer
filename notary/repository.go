@@ -154,10 +154,9 @@ func (no *Repository) getShaFromTargets(targets []client.TargetSignedStruct, log
 		if digest != nil && !bytes.Equal(digest, target.Target.Hashes[notary.SHA256]) {
 			log.WithFields(logrus.Fields{"digest": digest, "target": target}).Error("Digest is different from that of target")
 			return nil, fmt.Errorf("Incompatible digest %s from that of target %+v", digest, target)
-		} else {
-			digest = target.Target.Hashes[notary.SHA256]
-			log.WithField("sha256", digest).Debug("set digest")
 		}
+		digest = target.Target.Hashes[notary.SHA256]
+		log.WithField("sha256", digest).Debug("set digest")
 	}
 
 	//check all signatures from all specified roles have been found, overwise return error
