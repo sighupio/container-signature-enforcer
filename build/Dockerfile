@@ -4,11 +4,12 @@ ARG PROJECT_NAME="opa-notary-connector"
 ARG VERSION="dev"
 ARG COMMIT="none"
 ENV CGO_ENABLED=0
+ENV GOPROXY=https://proxy.golang.org
 
 COPY . /src/
 WORKDIR /src
 
-RUN DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') && go build -ldflags="-s -w -X github.com/sighupio/opa-notary-connector/cmd.version=${VERSION} -X github.com/sighupio/opa-notary-connector/cmd.commit=${COMMIT} -X github.com/sighupio/opa-notary-connector/cmd.date=${DATE}" -mod vendor -o /opa-notary-connector
+RUN DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') && go build -ldflags="-s -w -X github.com/sighupio/opa-notary-connector/cmd.version=${VERSION} -X github.com/sighupio/opa-notary-connector/cmd.commit=${COMMIT} -X github.com/sighupio/opa-notary-connector/cmd.date=${DATE}" -o /opa-notary-connector
 
 FROM alpine:3.11
 
