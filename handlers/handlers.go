@@ -21,6 +21,7 @@ type Request struct {
 type Response struct {
 	Request
 	Sha256 string `json:"sha256,omitempty"`
+	Image  string `json:"image,omitempty"`
 	OK     bool   `json:"ok"`
 	Err    string `json:"error,omitempty"`
 }
@@ -39,7 +40,7 @@ func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 			return
 		}
 
-		sha256, err := CheckImage(request.Image, config, gc.TrustRootDir, log)
+		sha256, image, err := CheckImage(request.Image, config, gc.TrustRootDir, log)
 
 		if err != nil {
 			log.WithError(err).Errorf("there was an error while processing %+v", request)
@@ -51,6 +52,7 @@ func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 
 		response.OK = true
 		response.Request = *request
+		response.Image = image
 		response.Sha256 = sha256
 
 		c.JSON(http.StatusOK, response)
@@ -58,7 +60,7 @@ func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 
 }
 
-func CheckImage(image string, config *conf.Config, trustRootDir string, log *logrus.Entry) (sha string, err error) {
+func CheckImage(image string, config *conf.Config, trustRootDir string, log *logrus.Entry) (string, string, error) {
 	log = log.WithField("image", image)
 
 	ref, _ := reference.NewReference(image, log)
@@ -69,7 +71,7 @@ func CheckImage(image string, config *conf.Config, trustRootDir string, log *log
 	// if no repository matched, default deny and send
 	if err != nil {
 		log.WithError(err).Error("Got error when getting matching")
-		return "", err
+		return "", "", err
 	}
 
 	log.WithField("repos", repos).Debug("Got matching repos for image")
@@ -79,25 +81,26 @@ func CheckImage(image string, config *conf.Config, trustRootDir string, log *log
 	for _, repo := range repos {
 		// if one of the repos has no trust enabled and matches the image we should allow it
 		if !repo.Trust.Enabled {
-			return "", nil
+			return "", "", nil
 		} else {
 
 			no, err := notary.New(ref, &repo, trustRootDir, log)
 
 			if err != nil {
 				log.WithField("server", repo.Trust.TrustServer).WithError(err).Error("Not able to create cached repository for image")
-				return "", err
+				return "", "", err
 			}
 
 			// otherwise retrieve the signed sha from the repository and add the patch
 			sha, err := no.GetSha()
 			if err != nil {
 				log.WithError(err).Error("Not able to get sha for image")
-				return "", err
+				return "", "", err
 			}
-			return sha, nil
+			ref.Digest = sha
+			return sha, ref.GetName(), nil
 
 		}
 	}
-	return "", err
+	return "", "", err
 }

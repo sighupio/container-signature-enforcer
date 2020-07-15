@@ -50,3 +50,32 @@ func TestReferenceOK(t *testing.T) {
 		})
 	}
 }
+
+func TestReferenceName(t *testing.T) {
+	var tests = []struct {
+		image, expectedName string
+	}{
+		{image: "docker.io/test/alpine:test", expectedName: "docker.io/test/alpine:test"},
+		{image: "registry.hub.docker.com/library/alpine:test", expectedName: "registry.hub.docker.com/library/alpine:test"},
+		{image: "alpine", expectedName: "docker.io/library/alpine:latest"},
+		{image: "alpine@sha256:2bb501e6173d9d006e56de5bce2720eb06396803300fe1687b58a7ff32bf4c14", expectedName: "docker.io/library/alpine:latest@sha256:2bb501e6173d9d006e56de5bce2720eb06396803300fe1687b58a7ff32bf4c14"},
+		{image: "localhost:30001/alpine:3.10", expectedName: "localhost:30001/alpine:3.10"},
+		{image: "localhost/alpine:3.10", expectedName: "localhost/alpine:3.10"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.image, func(t *testing.T) {
+			ref, err := NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
+			if err != nil {
+				t.Errorf("Got error %s", err.Error())
+				return
+			}
+			if ref == nil {
+				t.Errorf("Got nil ref for %s", tt.image)
+				return
+			}
+			if name := ref.GetName(); tt.expectedName != name {
+				t.Errorf("Got %s expected %s as name", name, tt.expectedName)
+			}
+		})
+	}
+}

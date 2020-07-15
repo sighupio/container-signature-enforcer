@@ -1,6 +1,7 @@
 package reference
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -57,4 +58,15 @@ func NewReference(name string, log *logrus.Entry) (*Reference, error) {
 	log.WithFields(logrus.Fields{"name": name, "reference": reference}).Debug("Obtained reference from name")
 
 	return reference, nil
+}
+
+func (r *Reference) GetName() (name string) {
+	name = r.Name
+	if r.Tag != "" {
+		name = fmt.Sprintf("%s:%s", name, r.Tag)
+	}
+	if r.Digest != "" {
+		name = fmt.Sprintf("%s@sha256:%s", name, r.Digest)
+	}
+	return name
 }

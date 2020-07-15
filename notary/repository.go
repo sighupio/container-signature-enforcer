@@ -147,7 +147,7 @@ func (no *Repository) getShaFromTargets(targets []client.TargetSignedStruct, log
 			no.rolesFound[target.Role.Name] = true
 		} else {
 			log.WithField("role", target.Role.Name).Error("PublicKey not specified for role")
-			return nil, fmt.Errorf("PublicKey not specified for role %s", target.Role.Name)
+			continue
 		}
 
 		// verify that the digest is consistent between all of the targets we care about
