@@ -24,6 +24,9 @@ var (
 )
 
 func init() {
+	logrus.SetReportCaller(true)
+	logrus.SetFormatter(new(logrus.JSONFormatter))
+	gin.SetMode(gin.ReleaseMode)
 	// flags set for the root command and all its subcommands
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.TrustRootDir, "trust-root-dir", "d", "/etc/opa-notary-connector/.trust", "Notary trust local cache directory.")
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.ConfigPath, "config", "c", "/etc/opa-notary-connector/trust.yaml", "Config file location.")
@@ -84,10 +87,9 @@ var (
 			level, err := logrus.ParseLevel(globalConfig.LogLevel)
 			if err != nil {
 				logrus.WithField("logLevel", globalConfig.LogLevel).WithError(err).Fatal("Log level not parsable")
+				return
 			}
 			logrus.SetLevel(level)
-			logrus.SetReportCaller(true)
-			logrus.SetFormatter(new(logrus.JSONFormatter))
 		},
 		// main function, reading config, setting up the router and starting the server
 		Run: func(cmd *cobra.Command, args []string) {

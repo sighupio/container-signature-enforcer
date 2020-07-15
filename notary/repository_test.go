@@ -24,7 +24,6 @@ func TestRepository(t *testing.T) {
 			//Priority is not checked here
 			Priority: 11,
 			Name:     "docker.io.*",
-			//TODO remove namespace logic
 			Trust: config.Trust{
 				Enabled:     true,
 				TrustServer: "sighup.notary.com",

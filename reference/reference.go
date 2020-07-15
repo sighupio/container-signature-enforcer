@@ -22,10 +22,14 @@ var (
 	digestRegex = regexp.MustCompile("@sha256:(?P<sha256>[a-fA-F0-9]+)$")
 	tagRegex    = regexp.MustCompile(":(?P<tag>[^/]+)$")
 	hostRegex   = regexp.MustCompile("^(?P<host>[^/^:]*)(/|(:(?P<port>[0-9]+)))")
+	//imageRegex  = regexp.MustCompile("^([a-zA-Z0-9-]+(.|:|/){0,1})+(@sha256:([a-fA-F0-9]+)){0,1}$")
 )
 
 // NewReference parses the image name and returns an error if the name is invalid.
 func NewReference(name string, log *logrus.Entry) (*Reference, error) {
+	//if !imageRegex.MatchString(name) {
+	//return nil, errors.New("unsupported image")
+	//}
 	reference := &Reference{}
 	reference.Original = name
 

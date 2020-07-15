@@ -79,3 +79,26 @@ func TestReferenceName(t *testing.T) {
 		})
 	}
 }
+
+func TestMalformedImage(t *testing.T) {
+	tests := []struct {
+		image       string
+		expectedRef Reference
+	}{
+		{image: "alpine:alksdja/asdasd:---", expectedRef: Reference{Original: "alpine:alksdja/asdasd:---", Name: "alpine:alksdja/asdasd", Tag: "---", Digest: "", Hostname: "", Port: ""}},
+		{image: "alpine:alksdja/asdasd:/---", expectedRef: Reference{Original: "alpine:alksdja/asdasd:/---", Name: "alpine:alksdja/asdasd:/---", Tag: "latest", Digest: "", Hostname: "", Port: ""}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.image, func(t *testing.T) {
+			ref, err := NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
+			if err != nil {
+				t.Errorf("got error %v", err)
+				return
+			}
+
+			if tt.expectedRef != *ref {
+				t.Errorf("got %#v, expected %#v", ref, tt.expectedRef)
+			}
+		})
+	}
+}
