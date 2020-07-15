@@ -8,6 +8,8 @@ steps:
     volumes:
       - name: deps
         path: /go
+    environment:
+      GOPROXY: https://proxy.golang.org
     commands:
       - go test -race -v ./... -cover
 

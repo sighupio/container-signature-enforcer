@@ -8,8 +8,8 @@ ENV GOPROXY=https://proxy.golang.org
 
 COPY . /src/
 WORKDIR /src
-
-RUN DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') && go build -ldflags="-s -w -X github.com/sighupio/opa-notary-connector/cmd.version=${VERSION} -X github.com/sighupio/opa-notary-connector/cmd.commit=${COMMIT} -X github.com/sighupio/opa-notary-connector/cmd.date=${DATE}" -o /opa-notary-connector
+RUN go mod vendor
+RUN DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') go build -ldflags="-s -w -X github.com/sighupio/opa-notary-connector/cmd.version=${VERSION} -X github.com/sighupio/opa-notary-connector/cmd.commit=${COMMIT} -X github.com/sighupio/opa-notary-connector/cmd.date=${DATE}" -mod vendor -o /opa-notary-connector
 
 FROM alpine:3.11
 
