@@ -28,49 +28,64 @@ data:
 
     image = {
       "Pod": "/spec/containers/%v/image",
+
+      "CronJob": "/spec/jobTemplate/spec/template/spec/containers/%v/image",
+
       "Deployment": "/spec/template/spec/containers/%v/image",
       "Daemonset": "/spec/template/spec/containers/%v/image",
       "Job": "/spec/template/spec/containers/%v/image",
-      "CronJob": "/spec/jobTemplate/spec/template/spec/containers/%v/image",
       "ReplicationController": "/spec/template/spec/containers/%v/image",
       "StatefulSet": "/spec/template/spec/containers/%v/image",
       "ReplicaSet": "/spec/template/spec/containers/%v/image"
     }
 
-    deny[msg] {
-      input.request.kind.kind == "Pod"
-      some j;
-      container_image = input.request.object.spec.containers[j].image
+    gen_patch(k, i, c) = p {
+      p := [{"op": "replace", "path": sprintf(image[k], [i]), "value": c}]
+    }
+
+    req_opa_notary_connector(s) = x {
       request := {
         "url": "http://localhost:8080/checkImage",
         "method": "POST",
         "body": {
-          "image": container_image,
+          "image": s,
         }
       }
-      response := http.send(request)
+      x := http.send(request)
+    }
+
+    deny[msg] {
+      input.request.kind.kind != "CronJob"
+      input.request.kind.kind != "Deployment"
+      input.request.kind.kind != "Daemonset"
+      input.request.kind.kind != "Job"
+      input.request.kind.kind != "ReplicationController"
+      input.request.kind.kind != "StatefulSet"
+      input.request.kind.kind != "ReplicaSet"
+
+      some j;
+      container_image = input.request.object.spec.containers[j].image
+      response := req_opa_notary_connector(container_image)
       response.status_code != 200
       error_message := response.body.error
       msg := sprintf("Container image %v invalid: %v", [container_image, error_message])
     }
 
-    patches["pod_sha"] = pod_sha {
-      input.request.kind.kind == "Pod"
+    patches["pod_sha"] = patch {
+      input.request.kind.kind != "CronJob"
+      input.request.kind.kind != "Deployment"
+      input.request.kind.kind != "Daemonset"
+      input.request.kind.kind != "Job"
+      input.request.kind.kind != "ReplicationController"
+      input.request.kind.kind != "StatefulSet"
+      input.request.kind.kind != "ReplicaSet"
+
       some j;
       container_image = input.request.object.spec.containers[j].image
-      request := {
-        "url": "http://localhost:8080/checkImage",
-        "method": "POST",
-        "body": {
-          "image": container_image,
-        }
-      }
-      response := http.send(request)
+
+      response := req_opa_notary_connector(container_image)
       response.status_code == 200
-      container_details := split(container_image, ":")
-      sha := response.body.sha256
-      path_template := image[input.request.kind.kind]
-      path := sprintf(path_template, [j])
-      new_container_image := sprintf("%v@%v", [container_details[0], sha])
-      pod_sha := [{"op": "replace", "path": path, "value": new_container_image}]
+      new_container_image := response.body.image
+
+      patch := gen_patch(input.request.kind.kind, j, new_container_image)
     }

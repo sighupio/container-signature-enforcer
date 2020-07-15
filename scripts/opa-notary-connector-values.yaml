@@ -58,13 +58,13 @@ bootstrapPolicies:
       "response": response,
     }
 
-    default response = {"allowed": true}
+    default response = {"allowed": false, "status": {"reason": "Strict mode enabled"}}
 
     response = {
       "allowed": false,
       "status": {"reason": reason},
     } {
-      reason = concat(", ", admission.deny)
+      reason := concat(", ", admission.deny)
       reason != ""
     }
 
@@ -73,11 +73,25 @@ bootstrapPolicies:
       "patchType": "JSONPatch",
       "patch": patch_bytes,
     } {
-      reason = concat(", ", admission.deny)
+      reason := concat(", ", admission.deny)
+      reason == ""
+      patch := {xw | xw := admission.patches[_][_]}
+      patch_json := json.marshal(patch)
+      patch_bytes := base64.encode(patch_json)
+      patch_bytes != "W10="
+    }
+
+    response = {
+      "allowed": false,
+      "status": {"reason": patch_reason},
+    } {
+      reason := concat(", ", admission.deny)
       reason == ""
       patch = {xw | xw := admission.patches[_][_]}
-      patch_json = json.marshal(patch)
-      patch_bytes = base64.encode(patch_json)
+      patch_json := json.marshal(patch)
+      patch_bytes := base64.encode(patch_json)
+      patch_bytes == "W10="
+      patch_reason := "OPA Notary Connector didn't return a valid value. Look at its logs to debug it"
     }
 
 # To enforce mutating policies, change to MutatingWebhookConfiguration.
