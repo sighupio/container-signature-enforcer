@@ -8,14 +8,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sighupio/opa-notary-connector/config"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRecoveryLogging(t *testing.T) {
 	t.Parallel()
+	logrus.SetFormatter(new(logrus.JSONFormatter))
 	r := SetupServer(config.NewGlobalConfig())
 	r.GET("/panic", func(c *gin.Context) {
-		panic("testing recovery logger")
+		var nothing *struct{ test string }
+		fmt.Sprint(nothing.test)
 	})
 	ts := httptest.NewServer(r)
 	defer ts.Close()

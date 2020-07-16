@@ -3,6 +3,8 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -55,7 +57,10 @@ func recoveryLogger() gin.HandlerFunc {
 		defer func() {
 			if err := recover(); err != nil {
 				log := logrus.WithField(UUIDField, c.GetString(UUIDField))
-				log.WithField("error", err).Error("Recovered panic")
+				log.WithFields(logrus.Fields{
+					"error":      err,
+					"stacktrace": strings.Split(string(debug.Stack()), "\n"),
+				}).Error("Recovered panic")
 				c.AbortWithStatus(http.StatusInternalServerError)
 			}
 		}()
