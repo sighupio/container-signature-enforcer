@@ -23,7 +23,3 @@ domains:
 127.0.0.1 registry.local
 127.0.0.1 notary-server.local
 ```
-
-##### My notes
-
-helm template --name-template opa-notary-connector opa-notary-connector/ --validate --namespace webhook --values scripts/opa-notary-connector-values.yaml > opa.yaml

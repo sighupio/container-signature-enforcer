@@ -1,4 +1,3 @@
-*.tgz
 vendor/
 delegation.key
 delegation.crt
