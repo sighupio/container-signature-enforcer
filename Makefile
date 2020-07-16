@@ -15,16 +15,17 @@ help: Makefile
 .PHONY: test
 ## test: Run local golang tests
 test:
-	go test -race -v ./... -cover
+	@go test -race -v ./... -cover
 
 .PHONY: gosec
 ## gosec: Inspects source code for security problems by scanning the Go AST.
 gosec:
-	gosec -out gosec.json -fmt json ./...
+	@go get github.com/securego/gosec/cmd/gosec
+	@gosec -out gosec.json -fmt json ./...
 
 .PHONY: build
 ## build: Builds the opa-notary-connector container image. tests and gosec before building
-build: test gosec
+build: test gosec opa-tests
 	@docker build -t opa-notary-connector:latest -f build/Dockerfile .
 
 .PHONY: local-start-script
@@ -64,3 +65,21 @@ local-stop:
 	@rm -rf ~/.docker/trust/tuf/localhost\:30001/
 	@rm -f delegation.key delegation.crt notary-tls.crt
 	@kind delete cluster
+
+.PHONY: mock-server-start
+mock-server-start:
+	@npm install -g mockserver@3.1.1
+	@mockserver -q -p 8080 -m scripts/mocks/ & echo "$$!" > "/tmp/mockserver.pid"
+	@sleep 3
+
+.PHONY: mock-server-stop
+mock-server-stop:
+	@kill -9 $(shell cat /tmp/mockserver.pid)
+
+.PHONY: rego-tests
+rego-tests:
+	@opa test -v config/
+
+.PHONY: opa-tests
+## opa-tests: Runs rego test code against a local mock-server
+opa-tests: mock-server-start rego-tests mock-server-stop
