@@ -20,6 +20,7 @@ local-start:
 .PHONY: local-stop
 ## local-stop: Stops local cluster
 local-stop:
+	@rm delegation.key delegation.crt notary-tls.crt
 	@kind delete cluster
 
 .PHONY: local-push
