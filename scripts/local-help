@@ -1,0 +1,26 @@
+Don't forget to add the following entries in your /etc/hosts file:
+
+  127.0.0.1 registry.local
+  127.0.0.1 notary-server.local
+
+registry.local uses port 30001 in your local computer
+notary-server.local uses port 30003 in your local computer
+
+Follow the commands bellow to test your setup:
+
+# Init a repository inside notary-server
+$ notary -D -p -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt init localhost:30001/alpine
+
+# Rotate notary repository keys
+$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt key rotate localhost:30001/alpine snapshot -r
+$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt publish localhost:30001/alpine
+
+# Pull an example image, tag them sign and push
+$ docker pull alpine:3.10
+$ docker tag alpine:3.10 localhost:30001/alpine:3.10
+# Set up correct environment variables to enable notary
+$ export DOCKER_CONTENT_TRUST=1
+$ export DOCKER_CONTENT_TRUST_SERVER=https://notary-server.local:30003
+$ docker trust key load ./delegation.key --name jenkins
+$ docker trust signer add --key ./delegation.crt jenkins localhost:30001/alpine
+$ docker push localhost:30001/alpine:3.10

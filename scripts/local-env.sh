@@ -53,7 +53,7 @@ retry 10 kubectl apply --validate=false -f https://github.com/jetstack/cert-mana
 helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --version v0.15.2
 kubectl wait --for=condition=Available deployment --timeout=3m -n cert-manager --all
 
-echo "3. Deploy notary"
+echo "3. Deploying notary"
 retry 10 kubectl apply -f scripts/notary-pki.yaml
 kubectl wait --for=condition=Ready certs --timeout=3m -n notary --all
 kubectl apply -f scripts/notary.yaml
@@ -111,39 +111,3 @@ echo "  Delegation key available at ./delegation.crt"
 echo "6. Downloading notary server certificate"
 kubectl get secret -n notary notary-server-crt -o jsonpath='{.data.tls\.crt}' | base64 -d > notary-tls.crt
 echo "  Notary Server certificate available at ./notary-tls.crt"
-
-echo "7. Finish!"
-cat << EOF
-Congratulations!!!
-Your local environment has been created.
-
-Don't forget to add the following entries in your /etc/hosts file:
-
-  127.0.0.1 registry.local
-  127.0.0.1 notary-server.local
-
-registry.local uses port 30001 in your local computer
-notary-server.local uses port 30003 in your local computer
-
-Follow the commands bellow to test your setup:
-
-# Clean before tests
-$ rm -rf ~/.docker/trust/tuf/localhost\:30001/
-
-# Init a repository inside notary-server
-$ notary -D -p -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt init localhost:30001/alpine
-
-# Rotate notary repository keys
-$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt key rotate localhost:30001/alpine snapshot -r
-$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt publish localhost:30001/alpine
-
-# Pull an example image, tag them sign and push
-$ docker pull alpine:3.10
-$ docker tag alpine:3.10 localhost:30001/alpine:3.10
-# Set up correct environment variables to enable notary
-$ export DOCKER_CONTENT_TRUST=1
-$ export DOCKER_CONTENT_TRUST_SERVER=https://notary-server.local:30003
-$ docker trust key load ./delegation.key --name jenkins
-$ docker trust signer add --key ./delegation.crt jenkins localhost:30001/alpine
-$ docker push localhost:30001/alpine:3.10
-EOF
