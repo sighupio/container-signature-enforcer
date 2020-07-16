@@ -1,4 +1,4 @@
-package cmd
+package handlers
 
 import (
 	"fmt"
@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sighupio/opa-notary-connector/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRecoveryLogging(t *testing.T) {
 	t.Parallel()
-	r := setupServer()
+	r := SetupServer(config.NewGlobalConfig())
 	r.GET("/panic", func(c *gin.Context) {
 		panic("testing recovery logger")
 	})

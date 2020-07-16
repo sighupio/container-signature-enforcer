@@ -1,4 +1,4 @@
-package cmd
+package handlers
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid"
-	"github.com/sighupio/opa-notary-connector/handlers"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +20,7 @@ func ginLogger() gin.HandlerFunc {
 		if err != nil {
 			logrus.WithError(err).Error("unable to generate uuid")
 		}
-		c.Set(handlers.UUIDField, trxID.String())
+		c.Set(UUIDField, trxID.String())
 
 		path := c.Request.URL.Path
 		if query := c.Request.URL.RawQuery; query != "" {
@@ -29,12 +28,12 @@ func ginLogger() gin.HandlerFunc {
 		}
 		requestLogger := logrus.WithFields(
 			logrus.Fields{
-				"state":            "received",
-				"method":           c.Request.Method,
-				"path":             path,
-				"ip":               c.ClientIP(),
-				"user-agent":       c.Request.UserAgent(),
-				handlers.UUIDField: trxID,
+				"state":      "received",
+				"method":     c.Request.Method,
+				"path":       path,
+				"ip":         c.ClientIP(),
+				"user-agent": c.Request.UserAgent(),
+				UUIDField:    trxID,
 			})
 		requestLogger.Info("Request Received")
 
@@ -55,7 +54,7 @@ func recoveryLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				log := logrus.WithField(handlers.UUIDField, c.GetString(handlers.UUIDField))
+				log := logrus.WithField(UUIDField, c.GetString(UUIDField))
 				log.WithField("error", err).Error("Recovered panic")
 				c.AbortWithStatus(http.StatusInternalServerError)
 			}
