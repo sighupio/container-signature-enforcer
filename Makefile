@@ -53,7 +53,8 @@ local-push: build
 .PHONY: local-deploy
 ## local-deploy: Deploys opa-notary-connector using helm. Requires to run make local-push before
 local-deploy:
-	@kubectl apply -f scripts/opa-notary-connector-config.yaml
+	@kubectl create configmap opa-notary-connector-rules -n webhook --from-file config/config.rego --dry-run=client -o yaml | kubectl apply -f - -n webhook
+	@kubectl label configmap opa-notary-connector-rules openpolicyagent.org/policy=rego --overwrite -n webhook
 	@helm upgrade --install opa-notary-connector stable/opa --namespace webhook --version 1.14.0 --values scripts/opa-notary-connector-values.yaml --set annotations."deploy-date"="$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')"
 	@kubectl wait --for=condition=Available deployment --timeout=3m -n webhook --all
 
