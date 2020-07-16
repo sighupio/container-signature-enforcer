@@ -95,7 +95,11 @@ func (no *Repository) getRolesFromSigners(signers []*config.Signer, log *logrus.
 func (no *Repository) GetSha() (string, error) {
 	contextLogger := no.log.WithFields(logrus.Fields{"image": no.reference, "server": no.configRepository.Trust.TrustServer})
 
-	no.getRolesFromSigners(no.configRepository.Trust.Signers, contextLogger)
+	err := no.getRolesFromSigners(no.configRepository.Trust.Signers, contextLogger)
+	if err != nil {
+		contextLogger.WithError(err).Error("getRolesFromSigners returned an error")
+		return "", err
+	}
 
 	targets, err := (*no.clientRepository).GetAllTargetMetadataByName(no.reference.Tag)
 
