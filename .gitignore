@@ -2,3 +2,4 @@ vendor/
 delegation.key
 delegation.crt
 notary-tls.crt
+gosec.json
