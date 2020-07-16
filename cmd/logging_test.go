@@ -7,9 +7,11 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRecoveryLogging(t *testing.T) {
+	t.Parallel()
 	r := setupServer()
 	r.GET("/panic", func(c *gin.Context) {
 		panic("testing recovery logger")
@@ -17,11 +19,7 @@ func TestRecoveryLogging(t *testing.T) {
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 	resp, err := http.Get(fmt.Sprintf("%s/panic", ts.URL))
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if resp.StatusCode != http.StatusInternalServerError {
-		t.Fatalf("got wrong status code")
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 
 }

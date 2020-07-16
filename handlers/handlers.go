@@ -79,6 +79,7 @@ func CheckImage(image string, config *conf.Config, trustRootDir string, log *log
 	// repos are sorted by priority, therefore the first to be matched is the one with highest priority,
 	// no other repos should be checked
 	for _, repo := range repos {
+		repo := repo
 		// if one of the repos has no trust enabled and matches the image we should allow it
 		if !repo.Trust.Enabled {
 			return "", "", nil

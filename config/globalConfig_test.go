@@ -5,6 +5,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -12,6 +13,7 @@ var (
 )
 
 func TestNewGlobalConfig(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		testcase string
 		config   string
@@ -32,13 +34,12 @@ func TestNewGlobalConfig(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.testcase, func(t *testing.T) {
+			t.Parallel()
 			c := NewGlobalConfig()
 			err := yaml.Unmarshal([]byte(tt.config), c.GetConfig())
-			if err != nil {
-				t.Errorf("got error while parsing config: %s", err.Error())
-				return
-			}
+			assert.NoError(t, err)
 
 		})
 	}

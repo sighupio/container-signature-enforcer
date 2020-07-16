@@ -4,9 +4,11 @@ import (
 	"testing"
 
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestReferenceOK(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		image, original, name, tag, digest, hostname, port string
 	}{
@@ -19,39 +21,24 @@ func TestReferenceOK(t *testing.T) {
 		{image: "localhost/alpine:3.10", original: "localhost/alpine:3.10", name: "localhost/alpine", tag: "3.10", digest: "", hostname: "localhost", port: ""},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.image, func(t *testing.T) {
+			t.Parallel()
 			ref, err := NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
-			if err != nil {
-				t.Errorf("Got error %s", err.Error())
-				return
-			}
-			if ref == nil {
-				t.Errorf("Got nil ref for %s", tt.original)
-				return
-			}
-			if ref.Original != tt.original {
-				t.Errorf("wanted %s, got %s as original", tt.original, ref.Original)
-			}
-			if ref.Name != tt.name {
-				t.Errorf("wanted %s, got %s as name", tt.name, ref.Name)
-			}
-			if ref.Tag != tt.tag {
-				t.Errorf("wanted %s, got %s as tag", tt.tag, ref.Tag)
-			}
-			if ref.Digest != tt.digest {
-				t.Errorf("wanted %s, got %s as digest", tt.digest, ref.Digest)
-			}
-			if ref.Hostname != tt.hostname {
-				t.Errorf("wanted %s, got %s as hostname", tt.hostname, ref.Hostname)
-			}
-			if ref.Port != tt.port {
-				t.Errorf("wanted %s, got %s as port", tt.port, ref.Port)
-			}
+			assert.NoError(t, err)
+			assert.NotNil(t, ref)
+			assert.Equal(t, tt.original, ref.Original)
+			assert.Equal(t, tt.name, ref.Name)
+			assert.Equal(t, tt.tag, ref.Tag)
+			assert.Equal(t, tt.digest, ref.Digest)
+			assert.Equal(t, tt.hostname, ref.Hostname)
+			assert.Equal(t, tt.port, ref.Port)
 		})
 	}
 }
 
 func TestReferenceName(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		image, expectedName string
 	}{
@@ -63,7 +50,9 @@ func TestReferenceName(t *testing.T) {
 		{image: "localhost/alpine:3.10", expectedName: "localhost/alpine:3.10"},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.image, func(t *testing.T) {
+			t.Parallel()
 			ref, err := NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
 			if err != nil {
 				t.Errorf("Got error %s", err.Error())
@@ -89,16 +78,12 @@ func TestMalformedImage(t *testing.T) {
 		{image: "alpine:alksdja/asdasd:/---", expectedRef: Reference{Original: "alpine:alksdja/asdasd:/---", Name: "alpine:alksdja/asdasd:/---", Tag: "latest", Digest: "", Hostname: "", Port: ""}},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.image, func(t *testing.T) {
+			t.Parallel()
 			ref, err := NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
-			if err != nil {
-				t.Errorf("got error %v", err)
-				return
-			}
-
-			if tt.expectedRef != *ref {
-				t.Errorf("got %#v, expected %#v", ref, tt.expectedRef)
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedRef, *ref)
 		})
 	}
 }

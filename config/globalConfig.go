@@ -9,6 +9,7 @@ type GlobalConfig struct {
 	BindAddress,
 	LogLevel,
 	ConfigPath,
+	Mode,
 	TrustRootDir string
 	Mutex *sync.RWMutex
 }

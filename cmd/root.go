@@ -24,16 +24,23 @@ var (
 )
 
 func init() {
-	logrus.SetReportCaller(true)
-	logrus.SetFormatter(new(logrus.JSONFormatter))
-	gin.SetMode(gin.ReleaseMode)
-	// flags set for the root command and all its subcommands
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.TrustRootDir, "trust-root-dir", "d", "/etc/opa-notary-connector/.trust", "Notary trust local cache directory.")
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.ConfigPath, "config", "c", "/etc/opa-notary-connector/trust.yaml", "Config file location.")
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.LogLevel, "verbosity", "v", "info", "Log level (one of fatal, error, warn, info or debug)")
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.BindAddress, "listen-address", "l", ":8443", "Address the service should bind to.")
+	rootCmd.PersistentFlags().StringVarP(&globalConfig.Mode, "mode", "m", gin.ReleaseMode, fmt.Sprintf("Set mode for gin and logger (%s, %s)", gin.ReleaseMode, gin.TestMode))
 	rootCmd.AddCommand(defaultConfig)
 	rootCmd.AddCommand(versionCmd)
+
+	logrus.SetReportCaller(true)
+	switch globalConfig.Mode {
+	case gin.DebugMode:
+		logrus.SetFormatter(new(logrus.TextFormatter))
+		gin.SetMode(gin.DebugMode)
+	default:
+		logrus.SetFormatter(new(logrus.JSONFormatter))
+		gin.SetMode(gin.ReleaseMode)
+	}
 }
 
 var (
@@ -158,6 +165,7 @@ func reloadConfig(e fsnotify.Event) {
 }
 
 func Execute() {
+	// flags set for the root command and all its subcommands
 	if err := rootCmd.Execute(); err != nil {
 		logrus.WithError(err).Fatal("Error executing root command")
 	}
