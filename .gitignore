@@ -3,3 +3,4 @@ delegation.key
 delegation.crt
 notary-tls.crt
 gosec.json
+opa-notary-connector

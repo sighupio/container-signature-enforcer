@@ -20,12 +20,12 @@ import (
 	"github.com/theupdateframework/notary/tuf/data"
 )
 
+// AllTargetMetadataByNameGetter abstracts the only function we use of Notary, getting metadata by name for a target
 type AllTargetMetadataByNameGetter interface {
 	GetAllTargetMetadataByName(tag string) ([]client.TargetSignedStruct, error)
 }
 
 type Repository struct {
-	rolelist          []data.RoleName
 	rolesFound        map[data.RoleName]bool
 	rolesToPublicKeys map[data.RoleName]data.PublicKey
 	clientRepository  *AllTargetMetadataByNameGetter
@@ -35,6 +35,7 @@ type Repository struct {
 	reference         *reference.Reference
 }
 
+// NewWithGetter creates a Repository
 func NewWithGetter(ref *reference.Reference, repo *config.Repository, getter *AllTargetMetadataByNameGetter, trustRootDir string, log *logrus.Entry) (*Repository, error) {
 	no := Repository{
 		configRepository:  repo,
@@ -49,6 +50,7 @@ func NewWithGetter(ref *reference.Reference, repo *config.Repository, getter *Al
 	return &no, nil
 }
 
+// New wraps NewWithGetter but then creates a FileCachedRepository as clientRepository, connecting to a real notary instance
 func New(ref *reference.Reference, repo *config.Repository, trustRootDir string, log *logrus.Entry) (*Repository, error) {
 	no, err := NewWithGetter(ref, repo, nil, trustRootDir, log)
 	if err != nil {
@@ -69,13 +71,13 @@ func New(ref *reference.Reference, repo *config.Repository, trustRootDir string,
 	return no, nil
 }
 
+// getRolesFromSigners is an internal function to warm up the internal caches
 func (no *Repository) getRolesFromSigners(signers []*config.Signer, log *logrus.Entry) (err error) {
 	// build the roles from the signers
 	for _, signer := range signers {
 		role := data.RoleName(signer.Role)
-		no.rolelist = append(no.rolelist, role)
 
-		// TODO parse multiple keys per same signer (list, not single key)
+		//TODO: parse multiple keys per same signer (list, not single key)
 		keyFromConfig, err := signer.GetPEM(log)
 
 		if err != nil || keyFromConfig == nil {
@@ -109,67 +111,79 @@ func (no *Repository) GetSha() (string, error) {
 		return "", err
 	}
 
+	//target signers
+	//0 0 => "", nil
+	//0 m => "", error
+	//n 0 => sha, nil
+	//n m => check
 	if len(targets) == 0 {
-		contextLogger.Error("No signed targets found")
-		return "", fmt.Errorf("No signed targets found")
-	}
-
-	var digest []byte // holds digest of the signed image
-	if len(no.rolelist) == 0 {
-		// if no signer specified, no way to decide between the available targets, accept the last one
-		for _, target := range targets {
-			digest = target.Target.Hashes[notary.SHA256]
+		if len(no.configRepository.Trust.Signers) == 0 {
+			return "", nil
+		} else {
+			contextLogger.Error("No signed targets found")
+			return "", fmt.Errorf("No signed targets found")
 		}
-		contextLogger.WithField("digest", digest).Debug("RoleList length == 0, returning digest", digest)
 	} else {
-		// filter out targets signed by not required roles
-		//TODO restore functionality
-		digest, err = no.getShaFromTargets(targets, contextLogger)
+		var digest []byte // holds digest of the signed image
+		if len(no.configRepository.Trust.Signers) == 0 {
+			// if no signer specified, no way to decide between the available targets, accept the last one
+			digest = targets[0].Target.Hashes[notary.SHA256]
+			contextLogger.
+				WithField("digest", digest).
+				Debug("no.configRepository.Trust.Signers length == 0, returning digest")
+		} else {
+			// filter out targets signed by not required roles
+			for _, target := range targets { // iterate over each target
+				d, err := no.getShaFromTarget(&target, contextLogger)
+				if err != nil {
+					return "", err
+				}
+				if digest != nil && !bytes.Equal(digest, d) {
+					contextLogger.
+						WithFields(logrus.Fields{"digest": digest, "target": target}).
+						Error("Digest is different from that of target")
+					return "", fmt.Errorf("Incompatible digest from that of target")
+				}
+				digest = d
+			}
+			//check all signatures from all specified roles have been found, overwise return error
+			for role, found := range no.rolesFound {
+				if !found {
+					contextLogger.
+						WithFields(logrus.Fields{"role": role, "key": no.rolesToPublicKeys[role]}).
+						Error("Role not found with key")
+					return "", fmt.Errorf("Role not found with for a specified signer")
+				}
+			}
+		}
+		stringDigest := hex.EncodeToString(digest)
+		contextLogger.WithField("digest", stringDigest).Debug("Returning digest for image")
+		return stringDigest, nil
 	}
-
-	stringDigest := hex.EncodeToString(digest)
-	contextLogger.WithField("digest", stringDigest).Debug("Returning digest for image")
-	return stringDigest, nil
 }
 
-func (no *Repository) getShaFromTargets(targets []client.TargetSignedStruct, log *logrus.Entry) (digest []byte, err error) {
-	log.WithFields(logrus.Fields{"rolelist": no.rolelist, "targets": targets}).Debug("Looking for roles iterating over targets")
-	for _, target := range targets { // iterate over each target
+func (no *Repository) getShaFromTarget(target *client.TargetSignedStruct, log *logrus.Entry) (digest []byte, err error) {
+	log.WithFields(logrus.Fields{"signers": no.configRepository.Trust.Signers, "target": target}).Debug("Looking for roles iterating over targets")
 
-		// See if a signer was specified for this target
-		if keyFromConfig, ok := no.rolesToPublicKeys[target.Role.Name]; ok {
-			// Assuming public key is in PEM format and not encoded any further
-			log = log.WithField("role", target.Role.Name)
-			log.WithFields(logrus.Fields{"keyID": keyFromConfig.ID(), "keys": target.Role.BaseRole.Keys}).Debug("Looking for key ID in keys")
-			if _, ok := target.Role.BaseRole.Keys[keyFromConfig.ID()]; !ok {
-				log.WithFields(logrus.Fields{"keyID": keyFromConfig.ID(), "keys": target.Role.BaseRole.ListKeyIDs()}).Error("KeyID not found in role key list")
-				return nil, fmt.Errorf("Public keys are different")
-			}
-			// We found a matching KeyID, so mark the role found in the map.
-			log.WithField("keyID", keyFromConfig.ID()).Debug("found role with keyID")
-			// store the digest of the latest signed release
-			no.rolesFound[target.Role.Name] = true
-		} else {
-			log.WithField("role", target.Role.Name).Error("PublicKey not specified for role")
-			continue
-		}
-
-		// verify that the digest is consistent between all of the targets we care about
-		if digest != nil && !bytes.Equal(digest, target.Target.Hashes[notary.SHA256]) {
-			log.WithFields(logrus.Fields{"digest": digest, "target": target}).Error("Digest is different from that of target")
-			return nil, fmt.Errorf("Incompatible digest %s from that of target %+v", digest, target)
-		}
-		digest = target.Target.Hashes[notary.SHA256]
-		log.WithField("sha256", digest).Debug("set digest")
+	log = log.WithField("role", target.Role.Name)
+	keyFromConfig, ok := no.rolesToPublicKeys[target.Role.Name]
+	if !ok {
+		return nil, nil
 	}
-
-	//check all signatures from all specified roles have been found, overwise return error
-	for role, found := range no.rolesFound {
-		if !found {
-			no.log.WithFields(logrus.Fields{"role": role, "key": no.rolesToPublicKeys[role]}).Error("Role not found with key")
-			return nil, fmt.Errorf("%s role not found with key %s", role, no.rolesToPublicKeys[role])
-		}
+	// Assuming public key is in PEM format and not encoded any further
+	log.WithFields(logrus.Fields{"keyID": keyFromConfig.ID(), "keys": target.Role.BaseRole.Keys}).Debug("Looking for key ID in keys")
+	if _, ok := target.Role.BaseRole.Keys[keyFromConfig.ID()]; !ok {
+		log.WithFields(logrus.Fields{"keyID": keyFromConfig.ID(), "keys": target.Role.BaseRole.ListKeyIDs()}).Error("KeyID not found in role key list")
+		return nil, fmt.Errorf("Public keys are different")
 	}
+	// We found a matching KeyID, so mark the role found in the map.
+	log.WithField("keyID", keyFromConfig.ID()).Debug("found role with keyID")
+	// store the digest of the latest signed release
+	no.rolesFound[target.Role.Name] = true
+
+	// verify that the digest is consistent between all of the targets we care about
+	digest = target.Target.Hashes[notary.SHA256]
+	log.WithField("sha256", digest).Debug("set digest")
 	return digest, nil
 }
 

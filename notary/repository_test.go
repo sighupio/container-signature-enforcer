@@ -40,7 +40,7 @@ func TestRepository(t *testing.T) {
 	assert.NoError(t, err)
 	pubKey, err := signer.GetPEM(log)
 	assert.NoError(t, err)
-	var fakeMetadataGetter AllTargetMetadataByNameGetter = Fake{
+	var fakeMetadataGetter AllTargetMetadataByNameGetter = fake{
 		map[string][]client.TargetSignedStruct{
 			"not-latest": {
 				client.TargetSignedStruct{
