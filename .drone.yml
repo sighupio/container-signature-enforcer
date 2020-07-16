@@ -3,8 +3,8 @@ kind: pipeline
 name: build
 
 steps:
-  - name: test
-    image: golang
+  - name: go-test
+    image: golang:1.14.4-buster
     volumes:
       - name: deps
         path: /go
@@ -12,6 +12,17 @@ steps:
       GOPROXY: https://proxy.golang.org
     commands:
       - go test -race -v ./... -cover
+
+  - name: gosec
+    image: golang:1.14.4-buster
+    volumes:
+      - name: deps
+        path: /go
+    environment:
+      GOPROXY: https://proxy.golang.org
+    commands:
+      - go get github.com/securego/gosec/cmd/gosec
+      - gosec -out gosec.json -fmt json ./...
 
 volumes:
   - name: deps
