@@ -25,6 +25,7 @@ type AllTargetMetadataByNameGetter interface {
 	GetAllTargetMetadataByName(tag string) ([]client.TargetSignedStruct, error)
 }
 
+//Repository represents a notary repository for a specific image
 type Repository struct {
 	rolesFound        map[data.RoleName]bool
 	rolesToPublicKeys map[data.RoleName]data.PublicKey
@@ -35,8 +36,8 @@ type Repository struct {
 	reference         *reference.Reference
 }
 
-// NewWithGetter creates a Repository
-func NewWithGetter(ref *reference.Reference, repo *config.Repository, getter *AllTargetMetadataByNameGetter, trustRootDir string, log *logrus.Entry) (*Repository, error) {
+// NewWithGetter creates a Repository given a getter, used for testing
+func newWithGetter(ref *reference.Reference, repo *config.Repository, getter *AllTargetMetadataByNameGetter, trustRootDir string, log *logrus.Entry) (*Repository, error) {
 	no := Repository{
 		configRepository:  repo,
 		reference:         ref,
@@ -52,7 +53,7 @@ func NewWithGetter(ref *reference.Reference, repo *config.Repository, getter *Al
 
 // New wraps NewWithGetter but then creates a FileCachedRepository as clientRepository, connecting to a real notary instance
 func New(ref *reference.Reference, repo *config.Repository, trustRootDir string, log *logrus.Entry) (*Repository, error) {
-	no, err := NewWithGetter(ref, repo, nil, trustRootDir, log)
+	no, err := newWithGetter(ref, repo, nil, trustRootDir, log)
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"image":  ref,
@@ -92,7 +93,7 @@ func (no *Repository) getRolesFromSigners(signers []*config.Signer, log *logrus.
 	return nil
 }
 
-// returns the sha of an image in a given trust server
+// GetSha returns the sha of an image in a given trust server
 //ref *Reference, rootDir string, repo *config.Repository
 func (no *Repository) GetSha() (string, error) {
 	contextLogger := no.log.WithFields(logrus.Fields{"image": no.reference, "server": no.configRepository.Trust.TrustServer})
@@ -119,47 +120,45 @@ func (no *Repository) GetSha() (string, error) {
 	if len(targets) == 0 {
 		if len(no.configRepository.Trust.Signers) == 0 {
 			return "", nil
-		} else {
-			contextLogger.Error("No signed targets found")
-			return "", fmt.Errorf("No signed targets found")
 		}
-	} else {
-		var digest []byte // holds digest of the signed image
-		if len(no.configRepository.Trust.Signers) == 0 {
-			// if no signer specified, no way to decide between the available targets, accept the last one
-			digest = targets[0].Target.Hashes[notary.SHA256]
-			contextLogger.
-				WithField("digest", digest).
-				Debug("no.configRepository.Trust.Signers length == 0, returning digest")
-		} else {
-			// filter out targets signed by not required roles
-			for _, target := range targets { // iterate over each target
-				d, err := no.getShaFromTarget(&target, contextLogger)
-				if err != nil {
-					return "", err
-				}
-				if digest != nil && !bytes.Equal(digest, d) {
-					contextLogger.
-						WithFields(logrus.Fields{"digest": digest, "target": target}).
-						Error("Digest is different from that of target")
-					return "", fmt.Errorf("Incompatible digest from that of target")
-				}
-				digest = d
-			}
-			//check all signatures from all specified roles have been found, overwise return error
-			for role, found := range no.rolesFound {
-				if !found {
-					contextLogger.
-						WithFields(logrus.Fields{"role": role, "key": no.rolesToPublicKeys[role]}).
-						Error("Role not found with key")
-					return "", fmt.Errorf("Role not found with for a specified signer")
-				}
-			}
-		}
-		stringDigest := hex.EncodeToString(digest)
-		contextLogger.WithField("digest", stringDigest).Debug("Returning digest for image")
-		return stringDigest, nil
+		contextLogger.Error("No signed targets found")
+		return "", fmt.Errorf("No signed targets found")
 	}
+	var digest []byte // holds digest of the signed image
+	if len(no.configRepository.Trust.Signers) == 0 {
+		// if no signer specified, no way to decide between the available targets, accept the last one
+		digest = targets[0].Target.Hashes[notary.SHA256]
+		contextLogger.
+			WithField("digest", digest).
+			Debug("no.configRepository.Trust.Signers length == 0, returning digest")
+	} else {
+		// filter out targets signed by not required roles
+		for _, target := range targets { // iterate over each target
+			d, err := no.getShaFromTarget(&target, contextLogger)
+			if err != nil {
+				return "", err
+			}
+			if digest != nil && !bytes.Equal(digest, d) {
+				contextLogger.
+					WithFields(logrus.Fields{"digest": digest, "target": target}).
+					Error("Digest is different from that of target")
+				return "", fmt.Errorf("Incompatible digest from that of target")
+			}
+			digest = d
+		}
+		//check all signatures from all specified roles have been found, overwise return error
+		for role, found := range no.rolesFound {
+			if !found {
+				contextLogger.
+					WithFields(logrus.Fields{"role": role, "key": no.rolesToPublicKeys[role]}).
+					Error("Role not found with key")
+				return "", fmt.Errorf("Role not found with for a specified signer")
+			}
+		}
+	}
+	stringDigest := hex.EncodeToString(digest)
+	contextLogger.WithField("digest", stringDigest).Debug("Returning digest for image")
+	return stringDigest, nil
 }
 
 func (no *Repository) getShaFromTarget(target *client.TargetSignedStruct, log *logrus.Entry) (digest []byte, err error) {

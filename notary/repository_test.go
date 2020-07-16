@@ -95,7 +95,7 @@ func TestRepository(t *testing.T) {
 		t.Run(tt.image, func(t *testing.T) {
 			t.Parallel()
 			ref, _ := reference.NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
-			repo, err := NewWithGetter(ref, tt.repo, tt.fakeMetadataGetter, "", log)
+			repo, err := newWithGetter(ref, tt.repo, tt.fakeMetadataGetter, "", log)
 			assert.NoError(t, err)
 
 			encodedExpectedSha := hex.EncodeToString([]byte(tt.expectedSha))
