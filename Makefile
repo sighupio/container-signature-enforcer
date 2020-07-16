@@ -23,32 +23,43 @@ gosec:
 	gosec -out gosec.json -fmt json ./...
 
 .PHONY: build
-## build: Builds the opa-notary-connector container image
+## build: Builds the opa-notary-connector container image. tests and gosec before building
 build: test gosec
 	@docker build -t opa-notary-connector:latest -f build/Dockerfile .
 
+.PHONY: local-start-script
+local-start-script:
+	@scripts/local-env.sh
+	@echo
+	@echo "Congratulations!!!"
+	@echo "Your local environment has been created."
 
 .PHONY: local-start
 ## local-start: Starts kind cluster with everything ready to start developing
-local-start:
-	@scripts/local-env.sh
+local-start: local-start-script local-help
 
-.PHONY: local-stop
-## local-stop: Stops local cluster
-local-stop:
-	@rm -f delegation.key delegation.crt notary-tls.crt
-	@kind delete cluster
+.PHONY: local-help
+## local-help: Print some useful commands to execute once local environment is ready.
+local-help:
+	@echo
+	@cat scripts/local-help
 
 .PHONY: local-push
-## local-push: Pushes to the local registry the opa-notary-connector container image (updated)
+## local-push: Pushes to the local registry the opa-notary-connector container image (local rebuild before push)
 local-push: build
 	@docker tag opa-notary-connector:latest registry.local:30001/opa-notary-connector:latest
 	@docker push registry.local:30001/opa-notary-connector:latest
 
 .PHONY: local-deploy
-## local-deploy: Deploys opa-notary-connector using helm
+## local-deploy: Deploys opa-notary-connector using helm. Requires to run make local-push before
 local-deploy:
 	@kubectl apply -f scripts/opa-notary-connector-config.yaml
-	@helm upgrade --install opa-notary-connector stable/opa --namespace webhook --version 1.14.0 --values scripts/opa-notary-connector-values.yaml
+	@helm upgrade --install opa-notary-connector stable/opa --namespace webhook --version 1.14.0 --values scripts/opa-notary-connector-values.yaml --set annotations."deploy-date"="$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')"
 	@kubectl wait --for=condition=Available deployment --timeout=3m -n webhook --all
 
+.PHONY: local-stop
+## local-stop: Stops local cluster
+local-stop:
+	@rm -rf ~/.docker/trust/tuf/localhost\:30001/
+	@rm -f delegation.key delegation.crt notary-tls.crt
+	@kind delete cluster
