@@ -290,6 +290,7 @@ extraContainers:
 ## Additional containers to be added to the opa pod.
 - name: opa-notary-connector
   image: localhost:30001/opa-notary-connector:latest
+  imagePullPolicy: Always
   securityContext:
     runAsUser: 1001
   command: ["/opa-notary-connector"]
