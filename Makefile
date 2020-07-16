@@ -12,6 +12,22 @@ help: Makefile
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
 
+.PHONY: test
+## test: Run local golang tests
+test:
+	go test -race -v ./... -cover
+
+.PHONY: gosec
+## gosec: Inspects source code for security problems by scanning the Go AST.
+gosec:
+	gosec -out gosec.json -fmt json ./...
+
+.PHONY: build
+## build: Builds the opa-notary-connector container image
+build: test gosec
+	@docker build -t opa-notary-connector:latest -f build/Dockerfile .
+
+
 .PHONY: local-start
 ## local-start: Starts kind cluster with everything ready to start developing
 local-start:
@@ -20,7 +36,7 @@ local-start:
 .PHONY: local-stop
 ## local-stop: Stops local cluster
 local-stop:
-	@rm delegation.key delegation.crt notary-tls.crt
+	@rm -f delegation.key delegation.crt notary-tls.crt
 	@kind delete cluster
 
 .PHONY: local-push
@@ -36,36 +52,3 @@ local-deploy:
 	@helm upgrade --install opa-notary-connector stable/opa --namespace webhook --version 1.14.0 --values scripts/opa-notary-connector-values.yaml
 	@kubectl wait --for=condition=Available deployment --timeout=3m -n webhook --all
 
-cleanup:
-	helm delete --purge --no-hooks opa-notary-connector
-	kubectl delete mutatingwebhookconfigurations.admissionregistration.k8s.io notary-admission-config
-	kubectl delete deployments alpine
-
-install:
-	helm install ./opa-notary-connector --name opa-notary-connector --namespace "webhook" --atomic -f values.yaml
-
-run-ok:
-	kubectl run alpine --image registry.test/test/alpine:3.10 -- sleep 5000
-
-run-ko-not-matching:
-	kubectl run nginx --image nginx:latest
-run-ko-not-signed:
-	kubectl run nginx --image registry.test/test/alpine:3.9
-
-test:
-	go test -race -v ./... -cover
-
-.PHONY: build
-build:
-	@docker build -t opa-notary-connector:latest -f build/Dockerfile .
-
-sign:
-	@echo todo
-
-gosec:
-	gosec -out gosec.json -fmt json ./...
-
-# all:
-# 	$(MAKE) cleanup
-# 	$(MAKE) build
-# 	$(MAKE) install
