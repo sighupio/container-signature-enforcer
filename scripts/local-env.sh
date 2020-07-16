@@ -21,9 +21,6 @@ function retry {
 }
 
 echo "0. Creating kind cluster"
-
-unset DOCKER_CONTENT_TRUST
-
 cat <<EOF | kind create cluster --image=docker.io/kindest/node:v1.18.4 --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -49,7 +46,7 @@ kubectl label namespace webhook sighup.io/webhook=ignore
 kubectl label namespace cert-manager sighup.io/webhook=ignore
 
 echo "1. Deploying docker registry"
-helm upgrade --install registry stable/docker-registry --set service.type=NodePort,service.nodePort=30001 -n notary
+helm upgrade --install registry stable/docker-registry --set service.type=NodePort,service.nodePort=30001 -n notary --version 1.9.4
 
 echo "2. Deploying cert-manager"
 retry 10 kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.15.2/cert-manager.crds.yaml
@@ -65,7 +62,57 @@ kubectl wait --for=condition=Available deployment --timeout=3m -n notary --all
 echo "4. Copying notary-server certificates to webhook namespace"
 kubectl get secret notary-server-crt -n notary -o yaml | sed s@"namespace: notary"@"namespace: webhook"@ | kubectl apply -n webhook -f -
 
-echo "5. Finish!"
+echo "5. Generating delegation key"
+cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}
+EOF
+cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: delegation-key
+spec:
+  secretName: delegation-key
+  dnsNames:
+    - delegation-key
+  issuerRef:
+    name: selfsigned-issuer
+EOF
+kubectl wait --for=condition=Ready certs --timeout=3m --all
+kubectl get secret delegation-key -o jsonpath='{.data.tls\.crt}' | base64 -d > delegation.crt
+kubectl get secret delegation-key -o jsonpath='{.data.tls\.key}' | base64 -d > delegation.key
+chmod 744 delegation.crt
+chmod 700 delegation.key
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-notary-connector-config
+  namespace: webhook
+data:
+  trust.yaml: |
+    repositories:
+      - name: "localhost.*"
+        priority: 10
+        trust:
+          enabled: true
+          trustServer: "https://notary-server.notary.svc.cluster.local:4443"
+          signers:
+          - role: "targets/jenkins"
+            publicKey: "$(kubectl get secret delegation-key -o jsonpath='{.data.tls\.crt}')"
+EOF
+echo "  Delegation key available at ./delegation.crt"
+
+echo "6. Downloading notary server certificate"
+kubectl get secret -n notary notary-server-crt -o jsonpath='{.data.tls\.crt}' | base64 -d > notary-tls.crt
+echo "  Notary Server certificate available at ./notary-tls.crt"
+
+echo "7. Finish!"
 cat << EOF
 Congratulations!!!
 Your local environment has been created.
@@ -83,21 +130,12 @@ Follow the commands bellow to test your setup:
 # Clean before tests
 $ rm -rf ~/.docker/trust/tuf/localhost\:30001/
 
-# Get the crt from the notary-server
-$ echo | openssl s_client -servername notary-server.local -connect notary-server.local:30003 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /tmp/notary-tls.crt
-
 # Init a repository inside notary-server
-$ notary -D -p -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert /tmp/notary-tls.crt init localhost:30001/alpine
-
-# Gen a private key, csr and crt
-$ openssl genrsa -out /tmp/delegation.key 2048
-$ chmod 700 /tmp/delegation.key
-$ openssl req -new -sha256 -key /tmp/delegation.key -out /tmp/delegation.csr
-$ openssl x509 -req -sha256 -days 365 -in /tmp/delegation.csr -signkey /tmp/delegation.key -out /tmp/delegation.crt
+$ notary -D -p -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt init localhost:30001/alpine
 
 # Rotate notary repository keys
-$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert /tmp/notary-tls.crt key rotate localhost:30001/alpine snapshot -r
-$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert /tmp/notary-tls.crt publish localhost:30001/alpine
+$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt key rotate localhost:30001/alpine snapshot -r
+$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt publish localhost:30001/alpine
 
 # Pull an example image, tag them sign and push
 $ docker pull alpine:3.10
@@ -105,7 +143,7 @@ $ docker tag alpine:3.10 localhost:30001/alpine:3.10
 # Set up correct environment variables to enable notary
 $ export DOCKER_CONTENT_TRUST=1
 $ export DOCKER_CONTENT_TRUST_SERVER=https://notary-server.local:30003
-$ docker trust key load /tmp/delegation.key --name jenkins
-$ docker trust signer add --key /tmp/delegation.crt jenkins localhost:30001/alpine
+$ docker trust key load ./delegation.key --name jenkins
+$ docker trust signer add --key ./delegation.crt jenkins localhost:30001/alpine
 $ docker push localhost:30001/alpine:3.10
 EOF

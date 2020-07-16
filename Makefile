@@ -28,6 +28,13 @@ local-push: build
 	@docker tag opa-notary-connector:latest registry.local:30001/opa-notary-connector:latest
 	@docker push registry.local:30001/opa-notary-connector:latest
 
+.PHONY: local-deploy
+## local-deploy: Deploys opa-notary-connector using helm
+local-deploy:
+	@kubectl apply -f scripts/opa-notary-connector-config.yaml
+	@helm upgrade --install opa-notary-connector stable/opa --namespace webhook --version 1.14.0 --values scripts/opa-notary-connector-values.yaml
+	@kubectl wait --for=condition=Available deployment --timeout=3m -n webhook --all
+
 cleanup:
 	helm delete --purge --no-hooks opa-notary-connector
 	kubectl delete mutatingwebhookconfigurations.admissionregistration.k8s.io notary-admission-config
