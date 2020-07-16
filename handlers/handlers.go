@@ -102,5 +102,5 @@ func CheckImage(image string, config *conf.Config, trustRootDir string, log *log
 
 		}
 	}
-	return "", "", err
+	return "", "", nil
 }

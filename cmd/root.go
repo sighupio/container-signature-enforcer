@@ -24,6 +24,9 @@ var (
 )
 
 func init() {
+	logrus.SetReportCaller(true)
+	logrus.SetFormatter(new(logrus.JSONFormatter))
+	gin.SetMode(gin.ReleaseMode)
 	// flags set for the root command and all its subcommands
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.TrustRootDir, "trust-root-dir", "d", "/etc/opa-notary-connector/.trust", "Notary trust local cache directory.")
 	rootCmd.PersistentFlags().StringVarP(&globalConfig.ConfigPath, "config", "c", "/etc/opa-notary-connector/trust.yaml", "Config file location.")
@@ -84,10 +87,9 @@ var (
 			level, err := logrus.ParseLevel(globalConfig.LogLevel)
 			if err != nil {
 				logrus.WithField("logLevel", globalConfig.LogLevel).WithError(err).Fatal("Log level not parsable")
+				return
 			}
 			logrus.SetLevel(level)
-			logrus.SetReportCaller(true)
-			logrus.SetFormatter(new(logrus.JSONFormatter))
 		},
 		// main function, reading config, setting up the router and starting the server
 		Run: func(cmd *cobra.Command, args []string) {
@@ -119,20 +121,25 @@ var (
 			}
 
 			// setup the router
-			r := gin.New()
-			r.Use(ginLogger())
-			r.Use(gin.Recovery())
-			//TODO move to customRecovery to log with logrus on panic, will be available in next gin release
-			//r.Use(gin.CustomRecovery())
-			r.POST("/checkImage", handlers.CheckImageHandlerBuilder(globalConfig))
-			r.GET("/healthz", func(c *gin.Context) {
-				c.String(http.StatusOK, "this is fine")
-			})
-
+			r := setupServer()
 			err = r.Run(globalConfig.BindAddress)
 		},
 	}
 )
+
+func setupServer() *gin.Engine {
+	r := gin.New()
+	r.Use(ginLogger())
+	r.Use(recoveryLogger())
+	//TODO move to customRecovery to log with logrus on panic, will be available in next gin release
+	//r.Use(gin.CustomRecovery())
+	r.POST("/checkImage", handlers.CheckImageHandlerBuilder(globalConfig))
+	r.GET("/healthz", func(c *gin.Context) {
+		c.String(http.StatusOK, "this is fine")
+	})
+
+	return r
+}
 
 func reloadConfig(e fsnotify.Event) {
 	logrus.WithField("file", globalConfig.ConfigPath).Info("Config file modified.")

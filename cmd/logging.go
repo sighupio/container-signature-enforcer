@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -47,5 +48,18 @@ func ginLogger() gin.HandlerFunc {
 				"result":  c.Writer.Status(),
 			},
 		).Info("Request Processed")
+	}
+}
+
+func recoveryLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if err := recover(); err != nil {
+				log := logrus.WithField(handlers.UUIDField, c.GetString(handlers.UUIDField))
+				log.WithField("error", err).Error("Recovered panic")
+				c.AbortWithStatus(http.StatusInternalServerError)
+			}
+		}()
+		c.Next()
 	}
 }
