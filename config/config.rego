@@ -21,6 +21,9 @@ req_opa_notary_connector(s) = x {
     request := {
         "url": "http://localhost:8080/checkImage",
         "method": "POST",
+        "headers": {
+            "X-Request-ID": uuid.rfc4122("")
+        },
         "body": {
             "image": s,
         }
