@@ -30,6 +30,7 @@ require (
 	github.com/golangci/gocyclo v0.0.0-20180528144436-0a533e8fa43d // indirect
 	github.com/golangci/revgrep v0.0.0-20180812185044-276a5c0a1039 // indirect
 	github.com/google/certificate-transparency-go v1.0.22-0.20190910093103-496c2e82955b // indirect
+	github.com/google/gofuzz v1.0.0
 	github.com/gorilla/mux v1.7.3 // indirect
 	github.com/gostaticanalysis/analysisutil v0.0.0-20190329151158-56bca42c7635 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.9.4 // indirect
