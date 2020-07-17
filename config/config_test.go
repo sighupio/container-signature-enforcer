@@ -6,9 +6,11 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/sighupio/opa-notary-connector/reference"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParsingConfig(t *testing.T) {
+	t.Parallel()
 	var tests = []struct {
 		testcase               string
 		config                 string
@@ -60,29 +62,21 @@ func TestParsingConfig(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.testcase, func(t *testing.T) {
+			t.Parallel()
 			c := &Config{}
 			err := yaml.Unmarshal([]byte(tt.config), c)
-			if err != nil {
-				t.Errorf("got error while parsing config: %s", err.Error())
-				return
-			}
-			if err = c.Validate(log); err != nil {
-				t.Errorf("got error while validating: %s", err.Error())
-				return
-			}
-			ref, _ := reference.NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
+			assert.NoError(t, err, "error unmarshalling")
+			err = c.Validate(log)
+			assert.NoError(t, err, "error validating")
+			ref, err := reference.NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
+			assert.NoError(t, err, "error parsing image")
 			repos, err := c.GetMatchingRepositoriesPerImage(ref, log)
-			if err != nil {
-				t.Errorf("got error while getting matching repos for image %s: %s", tt.image, err.Error())
-				return
-			}
-			if len(repos) != tt.expectedReposLen {
-				t.Errorf("got %d repos, expected %d: %+v", len(repos), tt.expectedReposLen, repos)
-				return
-			}
-			if tt.expectedReposLen >= 1 && repos[0].Name != tt.expectedRepositoryName {
-				t.Errorf("got wrong repo %s, expected %s", repos[0].Name, tt.expectedRepositoryName)
+			assert.NoError(t, err, "error getting matching repositories per image", ref)
+			assert.Len(t, repos, tt.expectedReposLen, "wrong repos len")
+			if tt.expectedReposLen >= 1 {
+				assert.Equal(t, tt.expectedRepositoryName, repos[0].Name, "wrong repo returned")
 			}
 
 		})

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"regexp"
 	"sort"
 
@@ -11,6 +12,7 @@ import (
 // The main config structure containing informations regarding the image signature verification
 type Config struct {
 	Repositories `mapstructure:"repositories"`
+	validated    bool
 	//TODO: global signers that can be referenced by name from Trust, so that keys can be shared between repositories if needed
 	//GlobalSigners []Signer
 }
@@ -37,15 +39,19 @@ func (c *Config) GetMatchingRepositoriesPerImage(image *reference.Reference, log
 }
 
 func (c *Config) Validate(log *logrus.Entry) error {
-	for _, repo := range c.Repositories {
-		for _, signer := range repo.Trust.Signers {
-			//TODO move mutex initialization to NewSigner function or something
-			if err := signer.ParsePEM(log); err != nil {
-				log.WithError(err).WithFields(logrus.Fields{"signer": signer, "repo": repo}).Error("Unable to parse signer public key")
-				return err
+	if !c.validated {
+		for _, repo := range c.Repositories {
+			for _, signer := range repo.Trust.Signers {
+				//TODO move mutex initialization to NewSigner function or something
+				if err := signer.ParsePEM(log); err != nil {
+					log.WithError(err).WithFields(logrus.Fields{"signer": signer, "repo": repo}).Error("Unable to parse signer public key")
+					return err
+				}
 			}
 		}
+		sort.Sort(c.Repositories)
+		c.validated = true
+		return nil
 	}
-	sort.Sort(c.Repositories)
-	return nil
+	return errors.New("Already validated config")
 }

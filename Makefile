@@ -69,12 +69,14 @@ local-stop:
 	@kind delete cluster
 
 .PHONY: mock-server-start
+## mock-server-start: Starts a local opa-notary-connector server at 8080 port. Useful to run opa-tests
 mock-server-start:
-	@npm install -g mockserver@3.1.1
+	@npm install -g mockserver
 	@mockserver -q -p 8080 -m scripts/mocks/ & echo "$$!" > "/tmp/mockserver.pid"
 	@sleep 3
 
 .PHONY: mock-server-stop
+## mock-server-stop: Stops the local opa-notary-connector server.
 mock-server-stop:
 	@kill -9 $(shell cat /tmp/mockserver.pid)
 
@@ -83,5 +85,5 @@ rego-tests:
 	@opa test -v config/
 
 .PHONY: opa-tests
-## opa-tests: Runs rego test code against a local mock-server
+## opa-tests: Runs rego code tests against the mock-server
 opa-tests: mock-server-start rego-tests mock-server-stop

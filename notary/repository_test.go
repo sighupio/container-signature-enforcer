@@ -7,12 +7,14 @@ import (
 	"github.com/sighupio/opa-notary-connector/config"
 	"github.com/sighupio/opa-notary-connector/reference"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"github.com/theupdateframework/notary"
 	"github.com/theupdateframework/notary/client"
 	"github.com/theupdateframework/notary/tuf/data"
 )
 
 func TestRepository(t *testing.T) {
+	t.Parallel()
 	log := logrus.NewEntry(&logrus.Logger{})
 	conf := config.Config{}
 	signer := &config.Signer{
@@ -35,16 +37,10 @@ func TestRepository(t *testing.T) {
 	}
 	// Validate also initialize mutexes in repository and signers => shit
 	err := conf.Validate(log)
-	if err != nil {
-		t.Errorf("Got error %s", err.Error())
-		return
-	}
+	assert.NoError(t, err)
 	pubKey, err := signer.GetPEM(log)
-	if err != nil {
-		t.Errorf("Got error %s", err.Error())
-		return
-	}
-	var fakeMetadataGetter AllTargetMetadataByNameGetter = Fake{
+	assert.NoError(t, err)
+	var fakeMetadataGetter AllTargetMetadataByNameGetter = fake{
 		map[string][]client.TargetSignedStruct{
 			"not-latest": {
 				client.TargetSignedStruct{
@@ -93,28 +89,19 @@ func TestRepository(t *testing.T) {
 		{image: "docker.io:8080/library/alpine", fakeMetadataGetter: &fakeMetadataGetter, repo: &conf.Repositories[0], expectedSha: "sighup"},
 		{image: "alpine:not-latest", fakeMetadataGetter: &fakeMetadataGetter, repo: &conf.Repositories[0], expectedSha: "not-sighup"},
 		{image: "alpine:latest", fakeMetadataGetter: &fakeMetadataGetter, repo: &conf.Repositories[0], expectedSha: "sighup"},
-		{image: "alpine:not-existing", fakeMetadataGetter: &fakeMetadataGetter, repo: &conf.Repositories[0], expectedSha: ""},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.image, func(t *testing.T) {
+			t.Parallel()
 			ref, _ := reference.NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
-			repo, err := NewWithGetter(ref, tt.repo, tt.fakeMetadataGetter, "", log)
-			if err != nil {
-				t.Errorf("Got error %s", err.Error())
-				return
-			}
+			repo, err := newWithGetter(ref, tt.repo, tt.fakeMetadataGetter, "", log)
+			assert.NoError(t, err)
 
 			encodedExpectedSha := hex.EncodeToString([]byte(tt.expectedSha))
 			sha, err := repo.GetSha()
-			if err != nil && tt.expectedSha != "" {
-				t.Errorf("Got error %s", err.Error())
-				return
-			}
-
-			if sha != encodedExpectedSha {
-				t.Errorf("Got %s, expected %s (original expected: %s)", sha, encodedExpectedSha, tt.expectedSha)
-				return
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, encodedExpectedSha, sha)
 
 		})
 	}
