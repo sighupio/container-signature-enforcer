@@ -96,3 +96,43 @@ test_patch {
     patch := patches with input as mocks.alpine_3_10_and_3_10_pod
     count(patch) == 2
 }
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_cronjob
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_and_3_10_cronjob
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_11_cronjob
+    contains(msg[_], "Container image alpine:3.11 invalid: image not found")
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_and_3_11_cronjob
+    contains(msg[_], "Container image alpine:3.11 invalid: image not found")
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_deployment
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_and_3_10_deployment
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_11_deployment
+    contains(msg[_], "Container image alpine:3.11 invalid: image not found")
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_and_3_11_deployment
+    contains(msg[_], "Container image alpine:3.11 invalid: image not found")
+}
