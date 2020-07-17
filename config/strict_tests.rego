@@ -46,3 +46,43 @@ test_deny {
     msg := deny with input as mocks.alpine_3_10_pod_incorrect_sha with data.webhook["opa-notary-connector-mode"]["mode.json"].strict as true
     count(msg) == 1
 }
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_cronjob_correct_sha
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_cronjob_incorrect_sha
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_cronjob_correct_sha with data.webhook["opa-notary-connector-mode"]["mode.json"].strict as true
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_cronjob_incorrect_sha with data.webhook["opa-notary-connector-mode"]["mode.json"].strict as true
+    count(msg) == 1
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_deployment_correct_sha
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_deployment_incorrect_sha
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_deployment_correct_sha with data.webhook["opa-notary-connector-mode"]["mode.json"].strict as true
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_deployment_incorrect_sha with data.webhook["opa-notary-connector-mode"]["mode.json"].strict as true
+    count(msg) == 1
+}
