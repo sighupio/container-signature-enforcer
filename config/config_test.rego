@@ -86,3 +86,13 @@ test_deny {
     msg := deny with input as mocks.alpine_3_11_and_3_10_pod
     contains(msg[_], "Container image alpine:3.11 invalid: image not found")
 }
+
+test_patch {
+    patch := patches with input as mocks.alpine_3_11_and_3_10_pod
+    count(patch) == 1
+}
+
+test_patch {
+    patch := patches with input as mocks.alpine_3_10_and_3_10_pod
+    count(patch) == 2
+}

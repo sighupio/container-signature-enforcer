@@ -82,7 +82,7 @@ deny[msg] {
     msg := deny_logic(container_image)
 }
 
-patches["pod_sha"] = patch {
+patches[patch] {
     is_pod
 
     some j;
@@ -91,7 +91,7 @@ patches["pod_sha"] = patch {
     patch := patch_logic(input.request.kind.kind, j, container_image)
 }
 
-patches["cronjob_sha"] = patch {
+patches[patch] {
     is_cronjob
 
     some j;
@@ -100,7 +100,7 @@ patches["cronjob_sha"] = patch {
     patch := patch_logic(input.request.kind.kind, j, container_image)
 }
 
-patches["others_sha"] = patch {
+patches[patch] {
     not_pod_and_not_cronjob
 
     some j;
