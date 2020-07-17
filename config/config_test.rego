@@ -1,5 +1,7 @@
 package kubernetes.admission
 
+import data.kubernetes.admission.mocks
+
 test_is_pod {
     is_pod with input as {"request": {"kind": {"kind": "Pod"}}}
 }
@@ -63,4 +65,24 @@ test_patch_logic {
 test_patch_logic {
     p := patch_logic("Pod", "1", "alpine:3.10")
     p == [{"op": "replace", "path": "/spec/containers/1/image", "value": "alpine@sha256:randomsha"}]
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_pod
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_and_3_10_pod
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_11_pod
+    contains(msg[_], "Container image alpine:3.11 invalid: image not found")
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_11_and_3_10_pod
+    contains(msg[_], "Container image alpine:3.11 invalid: image not found")
 }
