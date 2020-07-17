@@ -63,7 +63,7 @@ alpine_3_10_pod = {
               "3600"
             ],
             "resources": {
-              
+
             },
             "volumeMounts": [
               {
@@ -83,7 +83,7 @@ alpine_3_10_pod = {
         "serviceAccountName": "default",
         "serviceAccount": "default",
         "securityContext": {
-          
+
         },
         "schedulerName": "default-scheduler",
         "tolerations": [
@@ -104,7 +104,7 @@ alpine_3_10_pod = {
         "enableServiceLinks": true
       },
       "status": {
-        
+
       }
     },
     "oldObject": null,
@@ -179,7 +179,7 @@ alpine_3_11_pod = {
               "3600"
             ],
             "resources": {
-              
+
             },
             "volumeMounts": [
               {
@@ -199,7 +199,7 @@ alpine_3_11_pod = {
         "serviceAccountName": "default",
         "serviceAccount": "default",
         "securityContext": {
-          
+
         },
         "schedulerName": "default-scheduler",
         "tolerations": [
@@ -220,7 +220,7 @@ alpine_3_11_pod = {
         "enableServiceLinks": true
       },
       "status": {
-        
+
       }
     },
     "oldObject": null,
@@ -295,7 +295,7 @@ alpine_3_11_and_3_10_pod = {
               "3600"
             ],
             "resources": {
-              
+
             },
             "volumeMounts": [
               {
@@ -316,7 +316,7 @@ alpine_3_11_and_3_10_pod = {
               "3600"
             ],
             "resources": {
-              
+
             },
             "volumeMounts": [
               {
@@ -336,7 +336,7 @@ alpine_3_11_and_3_10_pod = {
         "serviceAccountName": "default",
         "serviceAccount": "default",
         "securityContext": {
-          
+
         },
         "schedulerName": "default-scheduler",
         "tolerations": [
@@ -357,7 +357,7 @@ alpine_3_11_and_3_10_pod = {
         "enableServiceLinks": true
       },
       "status": {
-        
+
       }
     },
     "oldObject": null,
@@ -432,7 +432,7 @@ alpine_3_10_and_3_10_pod = {
               "3600"
             ],
             "resources": {
-              
+
             },
             "volumeMounts": [
               {
@@ -453,7 +453,7 @@ alpine_3_10_and_3_10_pod = {
               "3600"
             ],
             "resources": {
-              
+
             },
             "volumeMounts": [
               {
@@ -473,7 +473,7 @@ alpine_3_10_and_3_10_pod = {
         "serviceAccountName": "default",
         "serviceAccount": "default",
         "securityContext": {
-          
+
         },
         "schedulerName": "default-scheduler",
         "tolerations": [
@@ -494,7 +494,7 @@ alpine_3_10_and_3_10_pod = {
         "enableServiceLinks": true
       },
       "status": {
-        
+
       }
     },
     "oldObject": null,
