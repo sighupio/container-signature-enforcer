@@ -1,6 +1,6 @@
 module github.com/sighupio/opa-notary-connector
 
-go 1.13
+go 1.14
 
 require (
 	cloud.google.com/go v0.41.0 // indirect
