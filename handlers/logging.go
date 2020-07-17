@@ -18,11 +18,15 @@ func ginLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		// generating the call unique id
-		trxID, err := uuid.NewV4()
-		if err != nil {
-			logrus.WithError(err).Error("unable to generate uuid")
+		requestID := c.GetHeader("X-Request-ID")
+		if requestID == "" {
+			id, err := uuid.NewV4()
+			if err != nil {
+				logrus.WithError(err).Error("unable to generate uuid")
+			}
+			requestID = id.String()
 		}
-		c.Set(UUIDField, trxID.String())
+		c.Set(UUIDField, requestID)
 
 		path := c.Request.URL.Path
 		if query := c.Request.URL.RawQuery; query != "" {
@@ -35,7 +39,7 @@ func ginLogger() gin.HandlerFunc {
 				"path":       path,
 				"ip":         c.ClientIP(),
 				"user-agent": c.Request.UserAgent(),
-				UUIDField:    trxID,
+				UUIDField:    requestID,
 			})
 		requestLogger.Info("Request Received")
 
