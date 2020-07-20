@@ -88,24 +88,6 @@ kubectl get secret delegation-key -o jsonpath='{.data.tls\.crt}' | base64 -d > d
 kubectl get secret delegation-key -o jsonpath='{.data.tls\.key}' | base64 -d > delegation.key
 chmod 744 delegation.crt
 chmod 700 delegation.key
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: opa-notary-connector-config
-  namespace: webhook
-data:
-  trust.yaml: |
-    repositories:
-      - name: "localhost.*"
-        priority: 10
-        trust:
-          enabled: true
-          trustServer: "https://notary-server.notary.svc.cluster.local:4443"
-          signers:
-          - role: "targets/jenkins"
-            publicKey: "$(kubectl get secret delegation-key -o jsonpath='{.data.tls\.crt}')"
-EOF
 echo "  Delegation key available at ./delegation.crt"
 
 echo "6. Downloading notary server certificate"

@@ -1,1 +1,10 @@
 vendor/
+build/
+docs/
+scripts/
+.drone.yml
+DEVELOP.md
+LICENSE
+Makefile
+README.md
+deployments
