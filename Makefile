@@ -15,7 +15,7 @@ help: Makefile
 
 .PHONY: deps
 deps:
-## dep: download deps to populate cache
+## deps: download deps to populate cache
 	@go mod download -x
 	@go get github.com/securego/gosec/cmd/gosec
 	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.27.0
@@ -29,7 +29,7 @@ test:
 ## gosec: Inspects source code for security problems by scanning the Go AST.
 gosec:
 	@gosec -out gosec.json -fmt json ./...
-	
+
 .PHONY: golangci-lint
 ## golangci-lint: Go linters aggregator.
 golangci-lint:
@@ -66,11 +66,8 @@ local-push: build
 .PHONY: local-deploy
 ## local-deploy: Deploys opa-notary-connector using helm. Requires to run make local-push before
 local-deploy:
-	@kubectl create configmap opa-notary-connector-mode -n webhook --from-file mode.json=config/mode.json --dry-run=client -o yaml | kubectl apply -f - -n webhook
-	@kubectl label configmap opa-notary-connector-mode openpolicyagent.org/data=opa --overwrite -n webhook
-	@kubectl create configmap opa-notary-connector-rules -n webhook --from-file config/config.rego --from-file config/strict.rego --dry-run=client -o yaml | kubectl apply -f - -n webhook
-	@kubectl label configmap opa-notary-connector-rules openpolicyagent.org/policy=rego --overwrite -n webhook
-	@helm upgrade --install opa-notary-connector stable/opa --namespace webhook --version 1.14.0 --values scripts/opa-notary-connector-values.yaml --set annotations."deploy-date"="$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')"
+	@helm dependency update deployments/helm/opa-notary-connector/
+	@helm upgrade --install opa-notary-connector deployments/helm/opa-notary-connector --namespace webhook --values scripts/opa-notary-connector-values.yaml  --set repositories[0].trust.signers[0].publicKey="$(shell cat delegation.crt | base64)" --set opa.annotations."deploy-date"="$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')"
 	@kubectl wait --for=condition=Available deployment --timeout=3m -n webhook --all
 
 .PHONY: local-stop
@@ -94,7 +91,7 @@ mock-server-stop:
 
 .PHONY: rego-tests
 rego-tests:
-	@opa test -v config/ || true 
+	@opa test -v deployments/helm/opa-notary-connector/opa-config || true
 
 .PHONY: opa-tests
 ## opa-tests: Runs rego code tests against the mock-server

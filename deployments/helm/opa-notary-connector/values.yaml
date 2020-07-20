@@ -1,0 +1,161 @@
+# Strict mode
+strict: true
+
+# OPA Notary Connector configuration
+repositories: []
+# - name: "localhost.*"
+#   priority: 10
+#   trust:
+#     enabled: true
+#     trustServer: "https://notary-server.notary.svc.cluster.local:4443"
+#     signers:
+#     - role: "targets/jenkins"
+#       publicKey: "" # base64 encoded public key
+
+opa:
+  opa: false
+
+  certManager:
+    enabled: true
+
+  bootstrapPolicies:
+    main: |-
+      package system
+
+      import data.kubernetes.admission
+
+      main = {
+        "apiVersion": "admission.k8s.io/v1beta1",
+        "kind": "AdmissionReview",
+        "response": response,
+      }
+
+      default response = {"allowed": false, "status": {"reason": "Strict mode enabled"}}
+
+      response = {
+        "allowed": false,
+        "status": {"reason": reason},
+      } {
+        count(admission.deny) > 0
+        reason := concat("\n", admission.deny)
+      }
+
+      response = {
+        "allowed": true,
+        "patchType": "JSONPatch",
+        "patch": patch_bytes,
+      } {
+        count(admission.deny) == 0
+        patch := {xw | xw := admission.patches[_][_]}
+        patch_json := json.marshal(patch)
+        patch_bytes := base64.encode(patch_json)
+        patch_bytes != "W10="
+      }
+
+      response = {
+        "allowed": false,
+        "status": {"reason": patch_reason},
+      } {
+        count(admission.deny) == 0
+        patch = {xw | xw := admission.patches[_][_]}
+        patch_json := json.marshal(patch)
+        patch_bytes := base64.encode(patch_json)
+        patch_bytes == "W10="
+        patch_reason := "OPA Notary Connector didn't return a valid value. Look at its logs to debug it"
+      }
+
+  admissionControllerKind: MutatingWebhookConfiguration
+  
+  admissionControllerFailurePolicy: Fail
+  
+  admissionControllerNamespaceSelector:
+    matchExpressions:
+      - {key: sighup.io/webhook, operator: NotIn, values: [ignore]}
+  
+  admissionControllerRules:
+    - operations: [ "CREATE", "UPDATE" ]
+      apiGroups: ["*"]
+      apiVersions: ["*"]
+      resources: ["pods", "deployments", "replicationcontrollers", "replicasets", "daemonsets", "statefulsets", "jobs", "cronjobs"]
+  imageTag: 0.21.1
+  imagePullPolicy: Always
+  
+  port: 8443
+  
+  mgmt:
+    imageTag: "0.11"
+    imagePullPolicy: Always
+    data:
+      enabled: true
+    configmapPolicies:
+      enabled: true
+      namespaces: ["webhook"]
+      requireLabel: true
+
+  rbac:
+    rules:
+      cluster:
+      - apiGroups: ["*"]
+        resources: ["*"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: [""]
+        resources: ["configmaps"]
+        verbs: ["update", "patch"]
+
+  readinessProbe:
+    httpGet:
+      port: 8443
+  livenessProbe:
+    httpGet:
+      port: 8443
+
+  securityContext:
+    enabled: true
+    runAsNonRoot: true
+    runAsUser: 1
+    fsGroup: 1001
+
+  extraContainers:
+  - name: opa-notary-connector
+    image: localhost:30001/opa-notary-connector:latest
+    imagePullPolicy: Always
+    securityContext:
+      runAsUser: 1001
+    command: ["/opa-notary-connector"]
+    args:
+      - "--config=/etc/opa-notary-connector/trust.yaml"
+      - "--listen-address=:8080"
+      - "--trust-root-dir=/etc/opa-notary-connector/.trust"
+      - "--verbosity=debug"
+    env:
+      - name: GIN_MODE
+        value: debug
+    ports:
+      - name: http
+        containerPort: 8080
+        protocol: TCP
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        scheme: HTTP
+        port: http
+    readinessProbe:
+      httpGet:
+        path: /healthz
+        scheme: HTTP
+        port: http
+    volumeMounts:
+      - name: opa-notary-connector-config
+        mountPath: /etc/opa-notary-connector/trust.yaml
+        subPath: trust.yaml
+      - name: notary-server-crt
+        mountPath: /etc/ssl/certs/ca.crt
+        subPath: ca.crt
+
+  extraVolumes:
+  - name: opa-notary-connector-config
+    configMap:
+      name: opa-notary-connector-config
+  - name: notary-server-crt
+    secret:
+      secretName: notary-server-crt

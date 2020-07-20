@@ -1,0 +1,11 @@
+apiVersion: v2
+name: opa-notary-connector
+description: OPA Notary Connector helm chart
+type: application
+version: 0.1.0
+appVersion: 1.0.0
+
+dependencies:
+  - name: opa
+    version: 1.14.0
+    repository: https://kubernetes-charts.storage.googleapis.com
