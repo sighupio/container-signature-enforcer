@@ -1,5 +1,7 @@
 # Notary Admission Webhook
 
+[![Build Status](https://ci.sighup.io/api/badges/sighupio/opa-notary-connector/status.svg)](https://ci.sighup.io/sighupio/opa-notary-connector)
+
 The aim of the project is to reimplement the main features from [ibm/portieris](https://github.com/IBM/portieris), removing the IBM related parts.
 
 ## Logic
