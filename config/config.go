@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// The main config structure containing informations regarding the image signature verification
+// Config is the main config structure containing informations regarding the image signature verification
 type Config struct {
 	Repositories `mapstructure:"repositories"`
 	validated    bool
@@ -17,7 +17,7 @@ type Config struct {
 	//GlobalSigners []Signer
 }
 
-// given an image filter out the matching repositories
+// GetMatchingRepositoriesPerImage given an image finds and returns only the matching repositories
 func (c *Config) GetMatchingRepositoriesPerImage(image *reference.Reference, log *logrus.Entry) (repos Repositories, err error) {
 	contextLogger := log.WithField("image", image)
 	contextLogger.WithField("repositories", c.Repositories).Debug("searching for matching repos for image")
@@ -38,6 +38,8 @@ func (c *Config) GetMatchingRepositoriesPerImage(image *reference.Reference, log
 	return repos, nil
 }
 
+// Validate checks the config to be valid, mostly checks signers public keys are valid PEMs.
+// It's expected to be run once and will return an error otherwise.
 func (c *Config) Validate(log *logrus.Entry) error {
 	if !c.validated {
 		for _, repo := range c.Repositories {
