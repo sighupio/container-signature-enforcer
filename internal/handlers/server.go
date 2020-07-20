@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	conf "github.com/sighupio/opa-notary-connector/config"
+	conf "github.com/sighupio/opa-notary-connector/internal/config"
 )
 
 // SetupServer configures the gin http server with:

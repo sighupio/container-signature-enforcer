@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sighupio/opa-notary-connector/config"
+	"github.com/sighupio/opa-notary-connector/internal/config"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )

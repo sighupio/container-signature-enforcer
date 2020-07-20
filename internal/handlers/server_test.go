@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
-	"github.com/sighupio/opa-notary-connector/config"
+	"github.com/sighupio/opa-notary-connector/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 

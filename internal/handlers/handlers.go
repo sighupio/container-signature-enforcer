@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	conf "github.com/sighupio/opa-notary-connector/config"
-	"github.com/sighupio/opa-notary-connector/notary"
-	"github.com/sighupio/opa-notary-connector/reference"
+	conf "github.com/sighupio/opa-notary-connector/internal/config"
+	"github.com/sighupio/opa-notary-connector/internal/notary"
+	"github.com/sighupio/opa-notary-connector/pkg/reference"
 	"github.com/sirupsen/logrus"
 )
 

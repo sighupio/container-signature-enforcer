@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	conf "github.com/sighupio/opa-notary-connector/config"
+	conf "github.com/sighupio/opa-notary-connector/internal/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

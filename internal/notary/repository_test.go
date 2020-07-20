@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/sighupio/opa-notary-connector/config"
-	"github.com/sighupio/opa-notary-connector/reference"
+	"github.com/sighupio/opa-notary-connector/internal/config"
+	"github.com/sighupio/opa-notary-connector/pkg/reference"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/theupdateframework/notary"

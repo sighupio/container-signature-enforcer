@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/fsnotify/fsnotify"
-	conf "github.com/sighupio/opa-notary-connector/config"
-	"github.com/sighupio/opa-notary-connector/handlers"
+	conf "github.com/sighupio/opa-notary-connector/internal/config"
+	"github.com/sighupio/opa-notary-connector/internal/handlers"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/sighupio/opa-notary-connector/reference"
+	"github.com/sighupio/opa-notary-connector/pkg/reference"
 	"github.com/sirupsen/logrus"
 )
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ghodss/yaml"
-	"github.com/sighupio/opa-notary-connector/reference"
+	"github.com/sighupio/opa-notary-connector/pkg/reference"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )

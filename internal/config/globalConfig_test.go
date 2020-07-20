@@ -3,9 +3,9 @@ package config
 import (
 	"testing"
 
-	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v2"
 )
 
 var (
