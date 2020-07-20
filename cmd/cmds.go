@@ -60,4 +60,7 @@ func rootCmdFunc(cmd *cobra.Command, args []string) {
 	// setup the router
 	r := handlers.SetupServer(globalConfig)
 	err = r.Run(globalConfig.BindAddress)
+	if err != nil {
+		logrus.WithError(err).Fatal("Run returned an error!")
+	}
 }

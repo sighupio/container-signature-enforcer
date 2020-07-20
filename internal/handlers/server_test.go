@@ -43,9 +43,10 @@ func TestFuzzingInput(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 			body, err := ioutil.ReadAll(resp.Body)
+			assert.NoError(t, err)
 			response := &Response{}
 			defer resp.Body.Close()
-			json.Unmarshal(body, response)
+			err = json.Unmarshal(body, response)
 			assert.NoError(t, err)
 			assert.Equal(t, response.OK, false)
 			assert.NotEqual(t, response.Err, "")

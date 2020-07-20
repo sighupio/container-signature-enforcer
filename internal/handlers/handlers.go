@@ -70,7 +70,7 @@ func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 		request := new(Request)
 		if err := c.ShouldBindJSON(request); err != nil {
 			log.WithError(err).Error("unable to bind body to Request object")
-			c.AbortWithError(http.StatusBadRequest, err)
+			_ = c.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
 		config := gc.GetConfig()
@@ -116,8 +116,8 @@ func CheckImage(image string, config *conf.Config, trustRootDir string, log *log
 
 	// repos are sorted by priority, therefore the first to be matched is the one with highest priority,
 	// no other repos should be checked
-	for _, repo := range repos {
-		repo := repo
+	if len(repos) >= 1 {
+		repo := repos[0]
 		// if one of the repos has no trust enabled and matches the image we should allow it
 		if !repo.Trust.Enabled {
 			return "", "", nil

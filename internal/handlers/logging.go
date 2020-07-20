@@ -45,7 +45,7 @@ func ginLogger() gin.HandlerFunc {
 
 		c.Next()
 
-		diff := time.Now().Sub(start)
+		diff := time.Since(start)
 		requestLogger.WithFields(
 			logrus.Fields{
 				"state":   "processed",
