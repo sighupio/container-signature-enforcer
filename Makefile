@@ -27,7 +27,7 @@ gosec:
 ## golangci-lint: Go linters aggregator.
 golangci-lint:
 	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.27.0
-	@golangci-lint run ./...
+	@golangci-lint run -v ./...
 
 .PHONY: build
 ## build: Builds the opa-notary-connector container image. tests and gosec before building
