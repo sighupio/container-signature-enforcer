@@ -17,6 +17,8 @@ help: Makefile
 deps:
 ## dep: download deps to populate cache
 	@go mod download -x
+	@go get github.com/securego/gosec/cmd/gosec
+	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.27.0
 
 .PHONY: test
 ## test: Run local golang tests
@@ -26,13 +28,11 @@ test:
 .PHONY: gosec
 ## gosec: Inspects source code for security problems by scanning the Go AST.
 gosec:
-	@go get github.com/securego/gosec/cmd/gosec
 	@gosec -out gosec.json -fmt json ./...
 	
 .PHONY: golangci-lint
 ## golangci-lint: Go linters aggregator.
 golangci-lint:
-	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.27.0
 	@golangci-lint run -v ./...
 
 .PHONY: build
