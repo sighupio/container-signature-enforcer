@@ -19,7 +19,7 @@ var (
 		Short: "Start the server, loading configs",
 
 		// main function, reading config, setting up the router and starting the server
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 
 			// start execution
 			err := viper.ReadInConfig()
@@ -49,10 +49,7 @@ var (
 
 			// setup the router
 			r := handlers.SetupServer(globalConfig)
-			err = r.Run(globalConfig.BindAddress)
-			if err != nil {
-				logrus.WithError(err).Fatal("Run returned an error!")
-			}
+			return r.Run(globalConfig.BindAddress)
 		},
 	}
 )
