@@ -44,7 +44,8 @@ steps:
       - chmod +x /usr/local/bin/opa
       - make opa-tests
     depends_on:
-      - deps
+      - gosec
+      - golangci-lint
 
   - name: go-test
     image: golang:1.14.4-buster
@@ -56,7 +57,8 @@ steps:
     commands:
       - make test
     depends_on:
-      - deps
+      - gosec
+      - golangci-lint
 
 
 volumes:
