@@ -12,10 +12,16 @@ help: Makefile
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
 
+
+.PHONY: deps
+deps:
+## dep: download deps to populate cache
+	@go mod download -x
+
 .PHONY: test
 ## test: Run local golang tests
 test:
-	@go test -race -v ./... -cover
+	@go test -race -v ./... -cover -count 1
 
 .PHONY: gosec
 ## gosec: Inspects source code for security problems by scanning the Go AST.

@@ -3,7 +3,7 @@ kind: pipeline
 name: build
 
 steps:
-  - name: go-test
+  - name: deps
     image: golang:1.14.4-buster
     volumes:
       - name: deps
@@ -11,7 +11,7 @@ steps:
     environment:
       GOPROXY: https://proxy.golang.org
     commands:
-      - make test
+      - make deps
 
   - name: gosec
     image: golang:1.14.4-buster
@@ -22,6 +22,8 @@ steps:
       GOPROXY: https://proxy.golang.org
     commands:
       - make gosec
+    depends_on:
+      - deps
 
   - name: golangci-lint
     image: golang:1.14.4-buster
@@ -32,6 +34,8 @@ steps:
       GOPROXY: https://proxy.golang.org
     commands:
       - make golangci-lint
+    depends_on:
+      - deps
 
   - name: opa-tests
     image: node:12.12.0-buster
@@ -39,6 +43,21 @@ steps:
       - wget --quiet https://github.com/open-policy-agent/opa/releases/download/v0.22.0/opa_linux_amd64 -O /usr/local/bin/opa
       - chmod +x /usr/local/bin/opa
       - make opa-tests
+    depends_on:
+      - deps
+
+  - name: go-test
+    image: golang:1.14.4-buster
+    volumes:
+      - name: deps
+        path: /go
+    environment:
+      GOPROXY: https://proxy.golang.org
+    commands:
+      - make test
+    depends_on:
+      - deps
+
 
 volumes:
   - name: deps
