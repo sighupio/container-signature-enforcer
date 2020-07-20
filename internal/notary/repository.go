@@ -134,10 +134,10 @@ func (no *Repository) GetSha() (string, error) {
 	} else {
 		// filter out targets signed by not required roles
 		for _, target := range targets { // iterate over each target
-			if _, ok := no.rolesFound[target.Role.Name]; !ok {
+			d, required, err := no.getShaFromRequiredTarget(&target, contextLogger)
+			if !required {
 				continue
 			}
-			d, err := no.getShaFromTarget(&target, contextLogger)
 			if err != nil {
 				return "", err
 			}
@@ -164,19 +164,23 @@ func (no *Repository) GetSha() (string, error) {
 	return stringDigest, nil
 }
 
-func (no *Repository) getShaFromTarget(target *client.TargetSignedStruct, log *logrus.Entry) (digest []byte, err error) {
+// getShaFromTarget returns sha of a required target, as follows:
+// nil, false, nil if the target's role name is not in the required signers list
+// sha, true, nil if the target's role name is in the required signers list
+// nil, true, err if the target's role name is in the required signers list, but with a different public key
+func (no *Repository) getShaFromRequiredTarget(target *client.TargetSignedStruct, log *logrus.Entry) (digest []byte, required bool, err error) {
 	log.WithFields(logrus.Fields{"signers": no.configRepository.Trust.Signers, "target": target}).Debug("Looking for roles iterating over targets")
 
 	log = log.WithField("role", target.Role.Name)
 	keyFromConfig, ok := no.rolesToPublicKeys[target.Role.Name]
 	if !ok {
-		return nil, nil
+		return nil, false, nil
 	}
 	// Assuming public key is in PEM format and not encoded any further
 	log.WithFields(logrus.Fields{"keyID": keyFromConfig.ID(), "keys": target.Role.BaseRole.Keys}).Debug("Looking for key ID in keys")
 	if _, ok := target.Role.BaseRole.Keys[keyFromConfig.ID()]; !ok {
 		log.WithFields(logrus.Fields{"keyID": keyFromConfig.ID(), "keys": target.Role.BaseRole.ListKeyIDs()}).Error("KeyID not found in role key list")
-		return nil, fmt.Errorf("Public keys are different")
+		return nil, true, fmt.Errorf("Public keys are different")
 	}
 	// We found a matching KeyID, so mark the role found in the map.
 	log.WithField("keyID", keyFromConfig.ID()).Debug("found role with keyID")
@@ -186,7 +190,7 @@ func (no *Repository) getShaFromTarget(target *client.TargetSignedStruct, log *l
 	// verify that the digest is consistent between all of the targets we care about
 	digest = target.Target.Hashes[notary.SHA256]
 	log.WithField("sha256", digest).Debug("set digest")
-	return digest, nil
+	return digest, true, nil
 }
 
 // reference is notary lingo for image
