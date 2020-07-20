@@ -58,6 +58,21 @@ func TestRepository(t *testing.T) {
 						},
 					},
 				},
+				client.TargetSignedStruct{
+					Role: data.DelegationRole{
+						BaseRole: data.BaseRole{
+							Name: "targets/releases",
+							Keys: map[string]data.PublicKey{
+								(*pubKey).ID(): *pubKey,
+							},
+						},
+					},
+					Target: client.Target{
+						Hashes: data.Hashes{
+							notary.SHA256: []byte("not-sighup"),
+						},
+					},
+				},
 			},
 			"latest": {
 				client.TargetSignedStruct{

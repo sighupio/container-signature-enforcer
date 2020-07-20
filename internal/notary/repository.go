@@ -134,15 +134,18 @@ func (no *Repository) GetSha() (string, error) {
 	} else {
 		// filter out targets signed by not required roles
 		for _, target := range targets { // iterate over each target
+			if _, ok := no.rolesFound[target.Role.Name]; !ok {
+				continue
+			}
 			d, err := no.getShaFromTarget(&target, contextLogger)
 			if err != nil {
 				return "", err
 			}
 			if digest != nil && !bytes.Equal(digest, d) {
 				contextLogger.
-					WithFields(logrus.Fields{"digest": digest, "target": target}).
+					WithFields(logrus.Fields{"newDigest": d, "digest": digest, "target": target}).
 					Error("Digest is different from that of target")
-				return "", fmt.Errorf("Incompatible digest from that of target")
+				return "", fmt.Errorf("Incompatible digest from that of target %v != %v", digest, d)
 			}
 			digest = d
 		}
