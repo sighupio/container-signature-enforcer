@@ -23,6 +23,16 @@ steps:
     commands:
       - make gosec
 
+  - name: golangci-lint
+    image: golang:1.14.4-buster
+    volumes:
+      - name: deps
+        path: /go
+    environment:
+      GOPROXY: https://proxy.golang.org
+    commands:
+      - make golangci-lint
+
   - name: opa-tests
     image: node:12.12.0-buster
     commands:
