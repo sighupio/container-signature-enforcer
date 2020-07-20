@@ -33,7 +33,7 @@ gosec:
 .PHONY: golangci-lint
 ## golangci-lint: Go linters aggregator.
 golangci-lint:
-	@golangci-lint run -v ./...
+	@golangci-lint run -v --timeout 5m ./...
 
 .PHONY: build
 ## build: Builds the opa-notary-connector container image. tests and gosec before building
