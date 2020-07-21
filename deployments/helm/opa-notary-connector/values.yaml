@@ -92,6 +92,8 @@ opa:
       namespaces: ["webhook"]
       requireLabel: true
 
+  logFormat: json
+
   rbac:
     rules:
       cluster:
@@ -126,10 +128,10 @@ opa:
       - "--config=/etc/opa-notary-connector/trust.yaml"
       - "--listen-address=:8080"
       - "--trust-root-dir=/etc/opa-notary-connector/.trust"
-      - "--verbosity=debug"
+      - "--verbosity=info"
     env:
       - name: GIN_MODE
-        value: debug
+        value: release
     ports:
       - name: http
         containerPort: 8080
