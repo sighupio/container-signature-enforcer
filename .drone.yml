@@ -144,6 +144,25 @@ steps:
         - VERSION=${DRONE_TAG}
         - COMMIT=${DRONE_COMMIT}
 
+  - name: chart
+    image: alpine:3.12
+    environment:
+      registry:
+        from_secret: registry_mirrored
+      username:
+        from_secret: registry_user_mirrored
+      password:
+        from_secret: registry_password_mirrored
+      repo: reg.sighup.io/sighupio/opa-notary-connector/chart
+      HELM_EXPERIMENTAL_OCI: "1"
+    commands:
+      - wget https://get.helm.sh/helm-v3.2.4-linux-amd64.tar.gz
+      - tar -zxvf helm-v3.2.4-linux-amd64.tar.gz
+      - mv linux-amd64/helm /usr/local/bin/helm
+      - helm registry login -u $${username} -p $${password} $${registry}
+      - helm chart save deployments/helm/opa-notary-connector $${repo}:${DRONE_TAG}
+      - helm chart push $${repo}:${DRONE_TAG}
+
   - name: github-release
     image: plugins/github-release
     settings:
