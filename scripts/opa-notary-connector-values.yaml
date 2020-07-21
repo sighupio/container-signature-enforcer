@@ -11,3 +11,39 @@ repositories:
 # OPA helm chart configuration
 opa:
   logLevel: debug
+  extraContainers:
+  - name: opa-notary-connector
+    image: localhost:30001/opa-notary-connector:latest
+    imagePullPolicy: Always
+    securityContext:
+      runAsUser: 1001
+    command: ["/opa-notary-connector"]
+    args:
+      - "--config=/etc/opa-notary-connector/trust.yaml"
+      - "--listen-address=:8080"
+      - "--trust-root-dir=/etc/opa-notary-connector/.trust"
+      - "--verbosity=info"
+    env:
+      - name: GIN_MODE
+        value: release
+    ports:
+      - name: http
+        containerPort: 8080
+        protocol: TCP
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        scheme: HTTP
+        port: http
+    readinessProbe:
+      httpGet:
+        path: /healthz
+        scheme: HTTP
+        port: http
+    volumeMounts:
+      - name: opa-notary-connector-config
+        mountPath: /etc/opa-notary-connector/trust.yaml
+        subPath: trust.yaml
+      - name: notary-server-crt
+        mountPath: /etc/ssl/certs/ca.crt
+        subPath: ca.crt
