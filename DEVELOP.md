@@ -269,3 +269,30 @@ $ make local-deploy
 ```
 
 After a while you will be able to see your changes in the cluster
+
+## Special considerations for Minishift
+
+For the admission webhook to work in Minishift it's necessary to enable the `admissions-webhook` addon with the following command:
+
+```shell
+minishift addons enable admissions-webhook
+```
+
+In the Minishift version we tested (`v1.34.1+c2ff9cb`) the command doesn't work, the changes have to be done manually. From the [addon source code file](
+https://github.com/minishift/minishift/blob/master/addons/admissions-webhook/admissions-webhook.addon) we get that the steps to be done are as follows:
+
+```shell
+# Login via ssh to the Minishift MV:
+minishift ssh
+
+# Make a backup of kubes apiserver master-config.yaml
+cd /var/lib/minishift/base/kube-apiserver
+cp master-config.yaml master-config-tmp.yaml
+
+# Patch the configuration
+/var/lib/minishift/bin/oc ex config patch master-config-tmp.yaml --patch "$(curl https://raw.githubusercontent.com/minishift/minishift/master/addons/admissions-webhook/patch.json)" > master-config.yaml
+
+# Stop the containers of the apiserver and the api, kubernetes should restart them by its own afterwards
+docker stop $(docker ps -l -q --filter "label=io.kubernetes.container.name=apiserver")
+docker stop $(docker ps -l -q --filter "label=io.kubernetes.container.name=api")
+```
