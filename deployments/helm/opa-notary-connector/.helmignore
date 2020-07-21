@@ -21,3 +21,7 @@
 .idea/
 *.tmproj
 .vscode/
+opa-config/config_mocks.rego
+opa-config/config_tests.rego
+opa-config/strict_mocks.rego
+opa-config/strict_tests.rego
