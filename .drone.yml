@@ -126,6 +126,24 @@ steps:
         - VERSION=${DRONE_TAG}
         - COMMIT=${DRONE_COMMIT}
 
+  - name: container-image-mirrored
+    image: plugins/docker
+    settings:
+      registry:
+        from_secret: registry_mirrored
+      username:
+        from_secret: registry_user_mirrored
+      password:
+        from_secret: registry_password_mirrored
+      repo: reg.sighup.io/sighupio/opa-notary-connector
+      dockerfile: build/Dockerfile
+      purge: true
+      force_tag: true
+      auto_tag: true
+      build_args:
+        - VERSION=${DRONE_TAG}
+        - COMMIT=${DRONE_COMMIT}
+
   - name: github-release
     image: plugins/github-release
     settings:
