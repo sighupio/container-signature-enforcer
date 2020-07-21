@@ -1,5 +1,36 @@
 ---
 kind: pipeline
+name: mirror
+
+clone:
+  disable: true
+
+steps:
+  - name: mirror
+    image: docker.io/alpine/git
+    pull: always
+    environment:
+      MIRROR_INSTANCE:
+        from_secret: mirror_instance
+      MIRROR_URL:
+        from_secret: mirror_url
+      MIRROR_KEY:
+        from_secret: mirror_key
+    commands:
+      - git clone --mirror $${DRONE_GIT_HTTP_URL} .
+      - eval $(ssh-agent -s)
+      - echo "$${MIRROR_KEY}" | tr -d '\r' | ssh-add -
+      - mkdir -p ~/.ssh
+      - chmod 700 ~/.ssh
+      - ssh-keyscan -t rsa $${MIRROR_INSTANCE} >> ~/.ssh/known_hosts
+      - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+      - chmod 644 ~/.ssh/known_hosts
+      - git remote set-url --push origin $${MIRROR_URL}
+      - git fetch -p origin
+      - git push --mirror
+
+---
+kind: pipeline
 name: build
 
 steps:
