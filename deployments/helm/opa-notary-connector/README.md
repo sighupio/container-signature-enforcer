@@ -42,7 +42,7 @@ Current chart version is `0.1.0`
 | opa.extraContainers[0].command[0] | string | `"/opa-notary-connector"` |  |
 | opa.extraContainers[0].env[0].name | string | `"GIN_MODE"` |  |
 | opa.extraContainers[0].env[0].value | string | `"release"` |  |
-| opa.extraContainers[0].image | string | `"localhost:30001/opa-notary-connector:latest"` |  |
+| opa.extraContainers[0].image | string | `"reg.sighup.io/sighupio/opa-notary-connector:v1.0.0"` |  |
 | opa.extraContainers[0].imagePullPolicy | string | `"Always"` |  |
 | opa.extraContainers[0].livenessProbe.httpGet.path | string | `"/healthz"` |  |
 | opa.extraContainers[0].livenessProbe.httpGet.port | string | `"http"` |  |
