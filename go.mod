@@ -37,7 +37,6 @@ require (
 	github.com/jinzhu/gorm v1.9.11 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/lib/pq v1.2.0 // indirect
-	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/miekg/pkcs11 v1.0.3 // indirect
 	github.com/nbutton23/zxcvbn-go v0.0.0-20180912185939-ae427f1e4c1d // indirect
