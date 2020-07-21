@@ -38,10 +38,10 @@ Current chart version is `0.1.0`
 | opa.extraContainers[0].args[0] | string | `"--config=/etc/opa-notary-connector/trust.yaml"` |  |
 | opa.extraContainers[0].args[1] | string | `"--listen-address=:8080"` |  |
 | opa.extraContainers[0].args[2] | string | `"--trust-root-dir=/etc/opa-notary-connector/.trust"` |  |
-| opa.extraContainers[0].args[3] | string | `"--verbosity=debug"` |  |
+| opa.extraContainers[0].args[3] | string | `"--verbosity=info"` |  |
 | opa.extraContainers[0].command[0] | string | `"/opa-notary-connector"` |  |
 | opa.extraContainers[0].env[0].name | string | `"GIN_MODE"` |  |
-| opa.extraContainers[0].env[0].value | string | `"debug"` |  |
+| opa.extraContainers[0].env[0].value | string | `"release"` |  |
 | opa.extraContainers[0].image | string | `"localhost:30001/opa-notary-connector:latest"` |  |
 | opa.extraContainers[0].imagePullPolicy | string | `"Always"` |  |
 | opa.extraContainers[0].livenessProbe.httpGet.path | string | `"/healthz"` |  |
@@ -68,6 +68,7 @@ Current chart version is `0.1.0`
 | opa.imagePullPolicy | string | `"Always"` |  |
 | opa.imageTag | string | `"0.21.1"` |  |
 | opa.livenessProbe.httpGet.port | int | `8443` |  |
+| opa.logFormat | string | `"json"` |  |
 | opa.mgmt.configmapPolicies.enabled | bool | `true` |  |
 | opa.mgmt.configmapPolicies.namespaces[0] | string | `"webhook"` |  |
 | opa.mgmt.configmapPolicies.requireLabel | bool | `true` |  |
