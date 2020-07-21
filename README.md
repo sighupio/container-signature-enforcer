@@ -100,7 +100,7 @@ In case of more than one image specified in a single resource, all images have t
 
 ### References
 
-**Namespace**: is the namespace matching one of the repositories configured?
+**Namespace**: is the namespace matching the admissionControllerNames configured?
 
 **Image**: is the image matching one of the repositories configured?
 
