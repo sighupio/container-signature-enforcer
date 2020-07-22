@@ -2,7 +2,7 @@ opa-notary-connector
 ====================
 OPA Notary Connector helm chart
 
-Current chart version is `0.1.0`
+Current chart version is `0.0.0`
 
 
 
