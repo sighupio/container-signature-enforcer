@@ -160,8 +160,8 @@ steps:
       - tar -zxvf helm-v3.2.4-linux-amd64.tar.gz
       - mv linux-amd64/helm /usr/local/bin/helm
       - helm registry login -u $${username} -p $${password} $${registry}
-      - helm chart save deployments/helm/opa-notary-connector $${repo}:${DRONE_TAG}
-      - helm chart push $${repo}:${DRONE_TAG}
+      - "helm chart save deployments/helm/opa-notary-connector $${repo}:${DRONE_TAG}"
+      - "helm chart push $${repo}:${DRONE_TAG}"
 
   - name: github-release
     image: plugins/github-release
