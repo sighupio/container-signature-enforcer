@@ -14,7 +14,17 @@ image = {
 }
 
 gen_patch(k, i, c) = p {
-    p := [{"op": "replace", "path": sprintf(image[k], [i]), "value": c}, {"op": "add", "path": "/metadata/labels/opa-notary-connector.sighup.io~1processed", "value": "true"}]
+    p := [{"op": "replace", "path": sprintf(image[k], [i]), "value": c}]
+}
+
+annotation_patch(metadata) = p {
+    not metadata.annotations
+    p := [{"op": "add", "path": "/metadata/annotations", "value": {"opa-notary-connector.sighup.io/processed": "true"}}]
+}
+
+annotation_patch(metadata) = p {
+    metadata.annotations
+    p := [{"op": "add", "path": "/metadata/annotations/opa-notary-connector.sighup.io~1processed", "value": "true"}]
 }
 
 req_opa_notary_connector(s) = x {
@@ -91,7 +101,9 @@ patches[patch] {
     some j;
     container_image := input.request.object.spec.containers[j].image
 
-    patch := patch_logic(input.request.kind.kind, j, container_image)
+    c_patch := patch_logic(input.request.kind.kind, j, container_image)
+    a_patch := annotation_patch(input.request.object.metadata)
+    patch = array.concat(c_patch, a_patch)
 }
 
 patches[patch] {
@@ -100,7 +112,9 @@ patches[patch] {
     some j;
     container_image := input.request.object.spec.jobTemplate.spec.template.spec.containers[j].image
 
-    patch := patch_logic(input.request.kind.kind, j, container_image)
+    c_patch := patch_logic(input.request.kind.kind, j, container_image)
+    a_patch := annotation_patch(input.request.object.metadata)
+    patch = array.concat(c_patch, a_patch)
 }
 
 patches[patch] {
@@ -109,5 +123,7 @@ patches[patch] {
     some j;
     container_image := input.request.object.spec.template.spec.containers[j].image
 
-    patch := patch_logic(input.request.kind.kind, j, container_image)
+    c_patch := patch_logic(input.request.kind.kind, j, container_image)
+    a_patch := annotation_patch(input.request.object.metadata)
+    patch = array.concat(c_patch, a_patch)
 }
