@@ -1,6 +1,6 @@
 # OPA Notary Connector
 
-[![Build Status](https://ci.sighup.io/api/badges/sighupio/opa-notary-connector/status.svg?ref=refs/tags/v0.1.0-rc1)](https://ci.sighup.io/sighupio/opa-notary-connector)
+[![Build Status](https://ci.sighup.io/api/badges/sighupio/opa-notary-connector/status.svg?ref=refs/tags/v0.1.0-rc2)](https://ci.sighup.io/sighupio/opa-notary-connector)
 
 ## Idea
 
