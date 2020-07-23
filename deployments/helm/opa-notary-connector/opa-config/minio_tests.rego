@@ -4,13 +4,11 @@ import data.kubernetes.admission.mocks
 
 
 test_not_deny_minio {
-    msg := deny with input as mocks.alpine_3_10_minio_tenant
-    count(msg) == 0
+    not denied with input as mocks.alpine_3_10_minio_tenant
 }
 
 test_deny_minio {
-    msg := deny with input as mocks.alpine_3_11_minio_tenant
-    count(msg) > 0
+    denied with input as mocks.alpine_3_11_minio_tenant
 }
 
 test_patch_minio {
@@ -24,21 +22,17 @@ test_patch_minio {
 }
 
 test_not_deny_minio_correct_sha {
-    msg := deny with input as mocks.alpine_3_10_minio_tenant_correct_sha
-    count(msg) == 0
+    not denied with input as mocks.alpine_3_10_minio_tenant_correct_sha
 }
 
 test_not_deny_minio_incorrect_sha {
-    msg := deny with input as mocks.alpine_3_10_minio_tenant_incorrect_sha
-    count(msg) == 0
+    not denied with input as mocks.alpine_3_10_minio_tenant_incorrect_sha
 }
 
 test_not_deny_minio_correct_sha_strict {
-    msg := deny with input as mocks.alpine_3_10_minio_tenant_correct_sha with data.webhook["opa-notary-connector-mode"]["mode.json"].strict as true
-    count(msg) == 0
+    not denied with input as mocks.alpine_3_10_minio_tenant_correct_sha with data.webhook["opa-notary-connector-mode"]["mode.json"].strict as true
 }
 
 test_deny_minio_incorrect_sha_strict {
-    msg := deny with input as mocks.alpine_3_10_minio_tenant_incorrect_sha with data.webhook["opa-notary-connector-mode"]["mode.json"].strict as true
-    count(msg) == 1
+    denied with input as mocks.alpine_3_10_minio_tenant_incorrect_sha with data.webhook["opa-notary-connector-mode"]["mode.json"].strict as true
 }
