@@ -68,6 +68,12 @@ patch_logic(k, i, c) = p {
     p := gen_patch(k, i, new_container_image)
 }
 
+prepare_patch(request, index, container_image) = p {
+    c_patch := patch_logic(request.kind.kind, index, container_image)
+    a_patch := annotation_patch(request.object.metadata)
+    p = array.concat(c_patch, a_patch)
+}
+
 deny[msg] {
     is_pod
 
@@ -101,9 +107,7 @@ patches[patch] {
     some j;
     container_image := input.request.object.spec.containers[j].image
 
-    c_patch := patch_logic(input.request.kind.kind, j, container_image)
-    a_patch := annotation_patch(input.request.object.metadata)
-    patch = array.concat(c_patch, a_patch)
+    patch := prepare_patch(input.request, j, container_image)
 }
 
 patches[patch] {
@@ -112,9 +116,7 @@ patches[patch] {
     some j;
     container_image := input.request.object.spec.jobTemplate.spec.template.spec.containers[j].image
 
-    c_patch := patch_logic(input.request.kind.kind, j, container_image)
-    a_patch := annotation_patch(input.request.object.metadata)
-    patch = array.concat(c_patch, a_patch)
+    patch := prepare_patch(input.request, j, container_image)
 }
 
 patches[patch] {
@@ -123,7 +125,5 @@ patches[patch] {
     some j;
     container_image := input.request.object.spec.template.spec.containers[j].image
 
-    c_patch := patch_logic(input.request.kind.kind, j, container_image)
-    a_patch := annotation_patch(input.request.object.metadata)
-    patch = array.concat(c_patch, a_patch)
+    patch := prepare_patch(input.request, j, container_image)
 }

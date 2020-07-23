@@ -92,6 +92,11 @@ test_patch_logic {
     p == [{"op": "replace", "path": "/spec/containers/1/image", "value": "alpine@sha256:randomsha"}]
 }
 
+test_prepare_patch {
+    p := prepare_patch(input.request, "1", "alpine:3.10") with input as mocks.alpine_3_10_pod
+    p == [{"op": "replace", "path": "/spec/containers/1/image", "value": "alpine@sha256:randomsha"}, {"op": "add", "path": "/metadata/annotations", "value": {"opa-notary-connector.sighup.io/processed": "true"}}]
+}
+
 test_deny {
     msg := deny with input as mocks.alpine_3_10_pod
     count(msg) == 0
