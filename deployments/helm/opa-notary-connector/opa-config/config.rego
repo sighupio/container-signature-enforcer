@@ -58,6 +58,10 @@ deny[msg] {
   msg := sprintf("Container image %v invalid: %v", [opa_notary_connector_responses[i].image, error_message])
 }
 
+denied = true {
+  count(deny)>0
+}
+
 
 patches[patch] {
   opa_notary_connector_responses[i].index
@@ -70,9 +74,13 @@ patches[patch] {
 
 patches[patch]{
   input.request.object.metadata.annotations
-patch := {"op": "add", "path": "/metadata/annotations/opa-notary-connector.sighup.io~1processed", "value": "true"}
+  patch := {"op": "add", "path": "/metadata/annotations/opa-notary-connector.sighup.io~1processed", "value": "true"}
 } {
-    patch := {"op": "add", "path": "/metadata/annotations", "value": {"opa-notary-connector.sighup.io/processed": "true"}}
+  patch := {"op": "add", "path": "/metadata/annotations", "value": {"opa-notary-connector.sighup.io/processed": "true"}}
+}
+
+patched = true {
+  count(patches) > 1
 }
 
 
