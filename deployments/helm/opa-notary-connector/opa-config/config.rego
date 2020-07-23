@@ -127,3 +127,20 @@ patches[patch] {
 
     patch := prepare_patch(input.request, j, container_image)
 }
+
+deny[msg] {
+    input.request.kind.kind == "Tenant"
+    container_image := input.request.object.spec.image
+    msg := deny_logic(container_image)
+}
+
+patches[patch] {
+    input.request.kind.kind == "Tenant"
+    container_image := input.request.object.spec.image
+    response := req_opa_notary_connector(container_image)
+    response.status_code == 200
+    new_container_image := response.body.image
+    i_patch := [{"op": "replace", "path": "/spec/image", "value": new_container_image}]
+    a_patch := annotation_patch(input.request.object.metadata)
+    patch := array.concat(i_patch, a_patch)
+}

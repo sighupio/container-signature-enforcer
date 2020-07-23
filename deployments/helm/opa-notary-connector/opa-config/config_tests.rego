@@ -166,3 +166,23 @@ test_deny {
     msg := deny with input as mocks.alpine_3_10_and_3_11_deployment
     contains(msg[_], "Container image alpine:3.11 invalid: image not found")
 }
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_10_minio_tenant
+    count(msg) == 0
+}
+
+test_deny {
+    msg := deny with input as mocks.alpine_3_11_minio_tenant
+    contains(msg[_], "Container image alpine:3.11 invalid: image not found")
+}
+
+test_patch {
+    patch := patches with input as mocks.alpine_3_10_minio_tenant
+    count(patch) == 1
+}
+
+test_patch {
+    patch := patches with input as mocks.alpine_3_11_minio_tenant
+    count(patch) == 0
+}

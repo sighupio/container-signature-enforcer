@@ -43,3 +43,12 @@ deny[msg] {
 
     msg := strict_deny_logic(container_image)
 }
+
+deny[msg] {
+    strict_mode
+    input.request.kind.kind == "Tenant"
+
+    container_image := input.request.object.spec.image
+
+    msg := strict_deny_logic(container_image)
+}
