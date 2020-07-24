@@ -1,0 +1,37 @@
+service:
+  type: NodePort
+  nodePort: 30001
+
+configData:
+  version: 0.1
+  log:
+    fields:
+      service: registry
+  storage:
+    cache:
+      blobdescriptor: inmemory
+  http:
+    addr: :5000
+    headers:
+      X-Content-Type-Options: [nosniff]
+  health:
+    storagedriver:
+      enabled: true
+      interval: 10s
+      threshold: 3
+  auth:
+    token:
+      autoredirect: false
+      realm: https://localhost:30005/auth
+      service: auth-server
+      issuer: auth-server
+      rootcertbundle: /certs/auth/ca.crt
+
+extraVolumes:
+ - name: auth-server-crt
+   secret:
+     secretName: auth-server-crt
+extraVolumeMounts:
+  - name: auth-server-crt
+    mountPath: /certs/auth/ca.crt
+    subPath: ca.crt
