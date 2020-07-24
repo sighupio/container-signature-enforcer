@@ -37,6 +37,8 @@ nodes:
     hostPort: 30001
   - containerPort: 30003
     hostPort: 30003
+  - containerPort: 30005
+    hostPort: 30005
 EOF
 kubectl create ns notary
 kubectl create ns webhook
@@ -46,7 +48,7 @@ kubectl label namespace webhook sighup.io/webhook=ignore
 kubectl label namespace cert-manager sighup.io/webhook=ignore
 
 echo "1. Deploying docker registry"
-helm upgrade --install registry stable/docker-registry --set service.type=NodePort,service.nodePort=30001 -n notary --version 1.9.4
+helm upgrade --install registry stable/docker-registry --values scripts/docker-registry-values.yaml -n notary --version 1.9.4
 
 echo "2. Deploying cert-manager"
 retry 10 kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.15.2/cert-manager.crds.yaml

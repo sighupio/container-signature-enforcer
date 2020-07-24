@@ -1,0 +1,162 @@
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: auth-server-root
+  namespace: notary
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: auth-server-root-ca
+  namespace: notary
+spec:
+  # name of the tls secret to store
+  # the generated certificate/key pair
+  secretName: auth-server-root-ca
+  isCA: true
+  issuerRef:
+    # issuer created in step 1
+    name: auth-server-root
+    kind: Issuer
+  commonName: "auth-server"
+  dnsNames:
+  # one or more fully-qualified domain name
+  # can be defined here
+    - auth-server
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: auth-server-root-ca
+  namespace: notary
+spec:
+  ca:
+    secretName: auth-server-root-ca
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: auth-server
+  namespace: notary
+spec:
+  # Secret names are always required.
+  secretName: auth-server-crt
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  organization:
+  - notary
+  commonName: auth-server
+  isCA: false
+  keySize: 521
+  keyAlgorithm: ecdsa
+  keyEncoding: pkcs1
+  usages:
+    - server auth
+    - client auth
+    - digital signature
+    - key encipherment
+  dnsNames:
+    - localhost
+    - auth-server
+    - auth-server.notary
+    - auth-server.notary.svc
+    - auth-server.notary.svc.cluster.local
+  issuerRef:
+    name: auth-server-root-ca
+    kind: Issuer
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-server-config
+  namespace: notary
+data:
+  config.yaml: |
+    server:
+      domain: "auth-server"
+      address: "0.0.0.0"
+      port: "5050"
+    token:
+      issuer: "auth-server"
+      expiration: 360
+    secureModule: true
+    tls:
+      cert: "/certs/tls.crt"
+      key: "/certs/tls.key"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-server
+  namespace: notary
+spec:
+  ports:
+  - name: https
+    port: 5050
+    targetPort: 5050
+  selector:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: auth-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-server-node-port
+  namespace: notary
+spec:
+  type: NodePort
+  ports:
+  - name: https
+    port: 5050
+    targetPort: 5050
+    nodePort: 30005
+  selector:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: auth-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-server
+  namespace: notary
+  labels:
+    app.kubernetes.io/name: notary
+    app.kubernetes.io/component: auth-server
+spec:
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notary
+      app.kubernetes.io/component: auth-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: notary
+        app.kubernetes.io/component: auth-server
+    spec:
+      containers:
+      - args:
+        - server
+        image: docker.io/angelbarrera92/registry-auth-server:latest
+        name: server
+        ports:
+        - containerPort: 5050
+          name: https
+        volumeMounts:
+        - mountPath: /internal/configs
+          name: config
+        - mountPath: /certs
+          name: tls
+      volumes:
+      - configMap:
+          name: auth-server-config
+        name: config
+      - secret:
+          secretName: auth-server-crt
+        name: tls
