@@ -3,6 +3,14 @@ package kubernetes.admission
 import data.kubernetes.admission.mocks
 
 
+denied = true {
+  count(deny) > 0
+}
+
+patched = true {
+  count(patches) > 1
+}
+
 test_not_denied {
   not denied with deny as set()
 }
@@ -12,23 +20,23 @@ test_denied {
 }
 
 test_image_pod {
-    img := images with input as mocks.alpine_3_11_pod
-    count(img) == 1
+  img := images with input as mocks.alpine_3_11_pod
+  count(img) == 1
 }
 
 test_image_pod {
-    img := images with input as mocks.alpine_3_10_pod
-    count(img) == 1
+  img := images with input as mocks.alpine_3_10_pod
+  count(img) == 1
 }
 
 test_different_images_pod {
-    img := images with input as mocks.alpine_3_11_and_3_10_pod
-    count(img) == 2
+  img := images with input as mocks.alpine_3_11_and_3_10_pod
+  count(img) == 2
 }
 
 test_same_images_pod {
-    img := images with input as mocks.alpine_3_10_and_3_10_pod
-    count(img) == 2
+  img := images with input as mocks.alpine_3_10_and_3_10_pod
+  count(img) == 2
 }
 
 test_not_deny_pod {
@@ -47,13 +55,12 @@ test_deny_pod {
   denied with input as mocks.alpine_3_11_and_3_10_pod
 }
 
-
 test_deny_deployment {
-    denied with input as mocks.alpine_3_11_deployment
+  denied with input as mocks.alpine_3_11_deployment
 }
 
 test_deny_deployment {
-    denied with input as mocks.alpine_3_10_and_3_11_deployment
+  denied with input as mocks.alpine_3_10_and_3_11_deployment
 }
 
 test_deny_cronjob {
