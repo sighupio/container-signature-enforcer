@@ -71,6 +71,15 @@ data:
         "tls_client_cert": "/tls/server/tls.crt",
         "tls_client_key": "/tls/server/tls.key"
       },
+      "auth": {
+        "type": "token",
+        "options": {
+          "realm": "https://localhost:30005/auth",
+          "service": "Notary Server",
+          "issuer": "Local auth server",
+          "rootcertbundle": "/certs/auth/ca.crt"
+        }
+      },
       "logging": {
         "level": "debug"
       },
@@ -321,6 +330,9 @@ spec:
           name: tls
         - mountPath: /tls/ca
           name: ca
+        - name: auth-server-crt
+          mountPath: /certs/auth/ca.crt
+          subPath: tls.crt
       volumes:
       - configMap:
           name: notary-config
@@ -331,6 +343,9 @@ spec:
       - secret:
           secretName: notary-root-ca
         name: ca
+      - name: auth-server-crt
+        secret:
+          secretName: auth-server-crt
       - emptyDir: {}
         name: config-rendered
 ---
