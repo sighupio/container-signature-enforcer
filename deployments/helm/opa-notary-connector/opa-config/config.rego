@@ -45,6 +45,7 @@ opa_notary_connector_responses[resp] {
     "index": images[i].index
     }
 } {
+  not images[i].index
   resp := {
     "response": req_opa_notary_connector(images[i].image),
     "image" : images[i].image,
@@ -63,6 +64,7 @@ patches[patch] {
   opa_notary_connector_responses[i].response.status_code == 200
   patch := {"op": "replace", "path": sprintf(opa_notary_connector_responses[i].patch_path, [opa_notary_connector_responses[i].index]) , "value":opa_notary_connector_responses[i].image }
 } {
+  not opa_notary_connector_responses[i].index
   opa_notary_connector_responses[i].response.status_code == 200
   patch := {"op": "replace", "path": opa_notary_connector_responses[i].patch_path , "value":opa_notary_connector_responses[i].image }
 }

@@ -8,6 +8,11 @@ repositories:
     signers:
     - role: "targets/jenkins"
       publicKey: "" # base64 encoded public key. Passed in Makefile local-deploy target
+# CatchAll allow
+#- name: ".*"
+  #priority: 0
+  #trust:
+    #enabled: false
 # OPA helm chart configuration
 opa:
   logLevel: debug
