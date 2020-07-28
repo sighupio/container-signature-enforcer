@@ -39,6 +39,16 @@ test_same_images_pod {
   count(img) == 2
 }
 
+test_patches_pod_single {
+  ps := patches with input as mocks.alpine_3_10_pod
+  count(ps) == 1 + 1
+}
+
+test_patches_pod_double {
+  ps := patches with input as mocks.alpine_3_10_and_3_10_pod
+  count(ps) == 1 + 2
+}
+
 test_not_deny_pod {
   not denied with input as mocks.alpine_3_10_pod
 }
