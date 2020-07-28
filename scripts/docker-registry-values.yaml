@@ -14,6 +14,9 @@ configData:
     addr: :5000
     headers:
       X-Content-Type-Options: [nosniff]
+  tls:
+    certificate: /certs/registry/tls.crt
+    key: /certs/registry/tls.key
   health:
     storagedriver:
       enabled: true
@@ -23,15 +26,24 @@ configData:
     token:
       autoredirect: false
       realm: https://localhost:30005/auth
-      service: auth-server
-      issuer: auth-server
+      service: Docker registry
+      issuer: Local auth server
       rootcertbundle: /certs/auth/ca.crt
 
 extraVolumes:
- - name: auth-server-crt
-   secret:
-     secretName: auth-server-crt
+  - name: auth-server-crt
+    secret:
+      secretName: auth-server-crt
+  - name: registry-crt
+    secret:
+      secretName: registry-crt
 extraVolumeMounts:
   - name: auth-server-crt
     mountPath: /certs/auth/ca.crt
-    subPath: ca.crt
+    subPath: tls.crt
+  - name: registry-crt
+    mountPath: /certs/registry/tls.crt
+    subPath: tls.crt
+  - name: registry-crt
+    mountPath: /certs/registry/tls.key
+    subPath: tls.key
