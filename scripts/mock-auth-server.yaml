@@ -74,18 +74,26 @@ metadata:
   name: auth-server-config
   namespace: notary
 data:
-  config.yaml: |
+  auth_config.yml: |
     server:
-      domain: "auth-server"
-      address: "0.0.0.0"
-      port: "5050"
-    token:
-      issuer: "auth-server"
-      expiration: 360
-    secureModule: true
-    tls:
-      cert: "/certs/tls.crt"
+      addr: ":5050"
+      certificate: "/certs/tls.crt"
       key: "/certs/tls.key"
+
+    token:
+      issuer: "Local auth server"  # Must match issuer in the Registry config.
+      expiration: 900
+
+    users:
+      # Password is specified as a BCrypt hash. Use `htpasswd -nB USERNAME` to generate.
+      "admin":
+        password: "$2y$05$77kEFFRLNJMiRezBslu2B.T3pCbs4YJx771pqAMK0tSFVm4mGqdM2"  # admin
+
+    acl:
+      - match: {account: "admin"}
+        actions: ["*"]
+        comment: "Admin has full access to everything."
+
 ---
 apiVersion: v1
 kind: Service
@@ -95,7 +103,7 @@ metadata:
 spec:
   ports:
   - name: https
-    port: 5050
+    port: 30005
     targetPort: 5050
   selector:
     app.kubernetes.io/name: notary
@@ -110,7 +118,7 @@ spec:
   type: NodePort
   ports:
   - name: https
-    port: 5050
+    port: 30005
     targetPort: 5050
     nodePort: 30005
   selector:
@@ -142,14 +150,14 @@ spec:
     spec:
       containers:
       - args:
-        - server
-        image: docker.io/angelbarrera92/registry-auth-server:latest
+        - /config/auth_config.yml
+        image: docker.io/cesanta/docker_auth:1.6.0
         name: server
         ports:
         - containerPort: 5050
           name: https
         volumeMounts:
-        - mountPath: /internal/configs
+        - mountPath: /config
           name: config
         - mountPath: /certs
           name: tls
