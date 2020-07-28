@@ -2,7 +2,7 @@
 apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
-  name: notary-root
+  name: root
   namespace: notary
 spec:
   selfSigned: {}
@@ -10,31 +10,33 @@ spec:
 apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
-  name: notary-root-ca
+  name: root-ca
   namespace: notary
 spec:
   # name of the tls secret to store
   # the generated certificate/key pair
-  secretName: notary-root-ca
+  secretName: root-ca
   isCA: true
   issuerRef:
     # issuer created in step 1
-    name: notary-root
+    name: root
     kind: Issuer
-  commonName: "notary"
+  commonName: "root"
   dnsNames:
   # one or more fully-qualified domain name
   # can be defined here
-    - notary
+    - root
 ---
 apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
-  name: notary-root-ca
+  name: root-ca
   namespace: notary
 spec:
   ca:
-    secretName: notary-root-ca
+    secretName: root-ca
+---
+########### NOTARY
 ---
 apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
@@ -68,7 +70,7 @@ spec:
     - notary-signer.local
     - notary-signer.localhost
   issuerRef:
-    name: notary-root-ca
+    name: root-ca
     kind: Issuer
 ---
 apiVersion: cert-manager.io/v1alpha2
@@ -103,5 +105,87 @@ spec:
     - notary-server.local
     - notary-server.localhost
   issuerRef:
-    name: notary-root-ca
+    name: root-ca
     kind: Issuer
+---
+########### REGISTRY
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: registry
+  namespace: notary
+spec:
+  # Secret names are always required.
+  secretName: registry-crt
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  organization:
+  - notary
+  commonName: registry
+  isCA: false
+  keySize: 521
+  keyAlgorithm: ecdsa
+  keyEncoding: pkcs1
+  usages:
+    - server auth
+    - client auth
+    - digital signature
+    - key encipherment
+  dnsNames:
+    - localhost
+    - registry
+    - registry.notary
+    - registry.notary.svc
+    - registry.notary.svc.cluster.local
+  issuerRef:
+    name: root-ca
+    kind: Issuer
+---
+########### AUTH SERVER
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: auth-server
+  namespace: notary
+spec:
+  # Secret names are always required.
+  secretName: auth-server-crt
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  organization:
+  - notary
+  commonName: auth-server
+  isCA: false
+  keySize: 521
+  keyAlgorithm: ecdsa
+  keyEncoding: pkcs1
+  usages:
+    - server auth
+    - client auth
+    - digital signature
+    - key encipherment
+  dnsNames:
+    - localhost
+    - auth-server
+    - auth-server.notary
+    - auth-server.notary.svc
+    - auth-server.notary.svc.cluster.local
+  issuerRef:
+    name: root-ca
+    kind: Issuer
+---
+########### DELEGATION KEY
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: delegation-key
+  namespace: notary
+spec:
+  secretName: delegation-key
+  dnsNames:
+    - delegation-key
+  issuerRef:
+    name: root-ca
