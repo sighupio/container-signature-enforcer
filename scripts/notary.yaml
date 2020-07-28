@@ -74,6 +74,7 @@ data:
       "auth": {
         "type": "token",
         "options": {
+          "autoredirect": "false",
           "realm": "https://localhost:30005/auth",
           "service": "Notary Server",
           "issuer": "Local auth server",
@@ -341,7 +342,7 @@ spec:
           secretName: notary-server-crt
         name: tls
       - secret:
-          secretName: notary-root-ca
+          secretName: root-ca
         name: ca
       - name: auth-server-crt
         secret:
@@ -428,7 +429,7 @@ spec:
           secretName: notary-signer-crt
         name: tls
       - secret:
-          secretName: notary-root-ca
+          secretName: root-ca
         name: ca
       - emptyDir: {}
         name: config-rendered

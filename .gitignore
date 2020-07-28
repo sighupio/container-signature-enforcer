@@ -1,7 +1,7 @@
 vendor/
 delegation.key
 delegation.crt
-notary-tls.crt
+ca.crt
 gosec.json
 deployments/helm/opa-notary-connector/charts
 deployments/helm/opa-notary-connector/Chart.lock

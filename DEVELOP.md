@@ -296,3 +296,16 @@ cp master-config.yaml master-config-tmp.yaml
 docker stop $(docker ps -l -q --filter "label=io.kubernetes.container.name=apiserver")
 docker stop $(docker ps -l -q --filter "label=io.kubernetes.container.name=api")
 ```
+
+
+
+## Notes
+
+Seems like there are some issues running it on macos:
+
+:facepalm:
+
+```bash
+$ docker run -d -v $(pwd):/repo -w /repo --name docker --network=host --privileged docker:19-dind
+# Download notary
+```

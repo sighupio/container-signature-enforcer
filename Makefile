@@ -74,7 +74,7 @@ local-deploy:
 ## local-stop: Stops local cluster
 local-stop:
 	@rm -rf ~/.docker/trust/tuf/localhost\:30001/
-	@rm -f delegation.key delegation.crt notary-tls.crt
+	@rm -f delegation.key delegation.crt ca.crt
 	@kind delete cluster
 
 .PHONY: mock-server-start
