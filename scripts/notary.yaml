@@ -75,7 +75,7 @@ data:
         "type": "token",
         "options": {
           "autoredirect": "false",
-          "realm": "https://localhost:30005/auth",
+          "realm": "https://auth-server.notary.svc.cluster.local:30005/auth",
           "service": "Notary Server",
           "issuer": "Local auth server",
           "rootcertbundle": "/certs/auth/ca.crt"
