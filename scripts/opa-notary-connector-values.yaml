@@ -27,7 +27,7 @@ opa:
       - "--config=/etc/opa-notary-connector/trust.yaml"
       - "--listen-address=:8080"
       - "--trust-root-dir=/etc/opa-notary-connector/.trust"
-      - "--verbosity=info"
+      - "--verbosity=debug"
     env:
       - name: GIN_MODE
         value: release
