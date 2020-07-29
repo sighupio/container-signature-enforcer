@@ -74,16 +74,16 @@ echo "4. Deploying notary"
 kubectl apply -f scripts/notary.yaml
 kubectl wait --for=condition=Available deployment --timeout=3m -n notary --all
 
-echo "4. Copying notary-server certificates to webhook namespace"
+echo "5. Copying notary-server certificates to webhook namespace"
 kubectl get secret notary-server-crt -n notary -o yaml | sed s@"namespace: notary"@"namespace: webhook"@ | kubectl apply -n webhook -f -
 
-echo "5. Downloading delegation key"
+echo "6. Downloading delegation key"
 kubectl get secret -n notary delegation-key -o jsonpath='{.data.tls\.crt}' | base64 -d > delegation.crt
 kubectl get secret -n notary delegation-key -o jsonpath='{.data.tls\.key}' | base64 -d > delegation.key
 chmod 744 delegation.crt
 chmod 700 delegation.key
 echo "    Delegation key available at ./delegation.crt"
 
-echo "6. Downloading ca certificate"
+echo "7. Downloading ca certificate"
 kubectl get secret -n notary root-ca -o jsonpath='{.data.tls\.crt}' | base64 -d > ca.crt
 echo "    CA certificate available at ./ca.crt"

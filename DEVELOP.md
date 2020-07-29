@@ -27,8 +27,8 @@ Error from server (Container image localhost:30001/alpine:3.10 invalid: notary-s
 
 ### Ports
 
-The setup requires to have ports `30001` and `30003` available in your computer. These ports will be used by
-`docker-registry` and `notary server`.
+The setup requires to have ports `30001`, `30003` and `30005` available in your computer. These ports will be used by
+`docker-registry`, `notary server` and `auth-server`.
 
 ### `/etc/hosts` entries
 
@@ -38,6 +38,8 @@ domains:
 ```
 127.0.0.1 registry.local
 127.0.0.1 notary-server.local
+127.0.0.1 auth-server
+127.0.0.1 auth-server.notary.svc.cluster.local
 ```
 
 ## Start the environment
@@ -46,9 +48,10 @@ First, you need to start the environment. Base environment consist on:
 
 - docker-registry
 - notary
+- auth-server
 - cert-manager
 
-notary is configured with certificates issued by cert-manager.
+notary, registry and auth-server is configured with certificates issued by cert-manager.
 
 To create this base environment you just need to run:
 
@@ -57,22 +60,23 @@ $ make local-start
 0. Creating kind cluster
 Creating cluster "kind" ...
 <TRUNCATED OUTPUT>
-1. Deploying docker registry
+1. Deploying cert-manager
 <TRUNCATED OUTPUT>
-2. Deploying cert-manager
+    Creating PKI
 <TRUNCATED OUTPUT>
-3. Deploying notary
+2. Deploying auth service
 <TRUNCATED OUTPUT>
-4. Copying notary-server certificates to webhook namespace
+3. Deploying docker registry
+<TRUNCATED OUTPUT>
+4. Deploying notary
+<TRUNCATED OUTPUT>
+5. Copying notary-server certificates to webhook namespace
 secret/notary-server-crt created
-5. Generating delegation key
-issuer.cert-manager.io/selfsigned-issuer created
-certificate.cert-manager.io/delegation-key created
-certificate.cert-manager.io/delegation-key condition met
-configmap/opa-notary-connector-config created
-  Delegation key available at ./delegation.crt
-6. Downloading notary server certificate
-  Notary Server certificate available at ./notary-tls.crt
+6. Downloading delegation key
+    Delegation key available at ./delegation.crt
+7. Downloading ca certificate
+    CA certificate available at ./ca.crt
+
 Congratulations!!!
 Your local environment has been created.
 <TRUNCATED OUTPUT>
@@ -80,14 +84,14 @@ Your local environment has been created.
 
 After a while you will be able to:
 
-- Push images to registry directly from your terminal. *(No need to expose ports)*
-- Use notary from your terminal. *(No need to expose ports)*.
+- Login (admin:admin) and push images to registry directly from your terminal. *(No need to expose ports)*
+- Use (admin:admin) notary from your terminal. *(No need to expose ports)*.
 
 Also three new files are now present:
 
 - `delegation.crt`: Delegation certificate to sign images. Run `make local-help` to discover useful commands
 - `delegation.key`: Delegation key to sign images. Run `make local-help` to discover useful commands
-- `notary-tls.crt`: Notary server certificate. Required because it is a self-signed certificate.
+- `ca.crt`: CA certificate. Required because it is a self-signed certificate.
 Run `make local-help` to discover useful commands
 
 ### Push an example image (test docker-registry)
@@ -98,6 +102,7 @@ In order to test `registry` is working, run the following commands in your termi
 $ docker pull alpine:3.10
 <TRUNCATED OUTPUT>
 $ docker tag alpine:3.10 localhost:30001/alpine:3.10
+$ docker login -u admin -p admin localhost:30001
 $ docker push localhost:30001/alpine:3.10
 The push refers to repository [localhost:30001/alpine]
 1b3ee35aacca: Pushed
@@ -158,6 +163,20 @@ Error from server (Container image localhost:30001/alpine:3.10 invalid: notary-s
 
 This error is expected as the image does not have a trusted signature.
 
+#### macOS users
+
+If you are using macOS, run the following commands inside dind.
+
+```bash
+$ docker run -d -v $(pwd):/repo -w /repo --name docker --network=host --privileged docker:19-dind
+$ docker exec -it docker /bin/sh
+(dind) $ wget https://github.com/theupdateframework/notary/releases/download/v0.6.1/notary-Linux-amd64
+(dind) $ mv notary-Linux-amd64 /usr/local/bin/notary
+(dind) $ chmod +x /usr/local/bin/notary
+(dind) $ chmod +x /usr/local/bin/notary
+(dind) $ echo "127.0.0.1 auth-server.notary.svc.cluster.local" >> /etc/hosts
+```
+
 #### Add a valid signature
 
 All commands listed bellow are available once you create a cluster using: `make local-start` and also if you run
@@ -165,18 +184,19 @@ All commands listed bellow are available once you create a cluster using: `make 
 
 ```bash
 # Init a repository inside notary-server
-$ notary -D -p -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt init localhost:30001/alpine
+$ notary -D -p -v -s https://localhost:30003 -d ~/.docker/trust --tlscacert ./ca.crt init localhost:30001/alpine
 
 # Rotate notary repository keys
-$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt key rotate localhost:30001/alpine snapshot -r
-$ notary -D -v -s https://notary-server.local:30003 -d ~/.docker/trust --tlscacert ./notary-tls.crt publish localhost:30001/alpine
+$ notary -D -v -s https://localhost:30003 -d ~/.docker/trust --tlscacert ./ca.crt key rotate localhost:30001/alpine snapshot -r
+$ notary -D -v -s https://localhost:30003 -d ~/.docker/trust --tlscacert ./ca.crt publish localhost:30001/alpine
 
 # Pull an example image, tag them sign and push
 $ docker pull alpine:3.10
 $ docker tag alpine:3.10 localhost:30001/alpine:3.10
+$ docker login -u admin -p admin localhost:30001
 # Set up correct environment variables to enable notary
 $ export DOCKER_CONTENT_TRUST=1
-$ export DOCKER_CONTENT_TRUST_SERVER=https://notary-server.local:30003
+$ export DOCKER_CONTENT_TRUST_SERVER=https://localhost:30003
 $ docker trust key load ./delegation.key --name jenkins
 $ docker trust signer add --key ./delegation.crt jenkins localhost:30001/alpine
 $ docker push localhost:30001/alpine:3.10
@@ -217,7 +237,7 @@ It will delete the following files and directories:
 - `~/.docker/trust/tuf/localhost\:30001/`
 - `delegation.key`
 - `delegation.crt`
-- `notary-tls.crt`
+- `ca.crt`
 
 As they are fully dependant of this local environment.
 
@@ -255,8 +275,8 @@ After a while you will be able to see your changes in the cluster
 
 #### Rules
 
-Rego code is available in the [`scripts/opa-notary-connector-config.yaml`](scripts/opa-notary-connector-config.yaml)
-file.
+Rego code is available in the
+[`deployments/helm/opa-notary-connector/opa-config`](deployments/helm/opa-notary-connector/opa-config) directory.
 
 This code is in charge of get the image to run, pass it to the golang project and decide what to do next:
 
@@ -296,17 +316,4 @@ cp master-config.yaml master-config-tmp.yaml
 # Stop the containers of the apiserver and the api, kubernetes should restart them by its own afterwards
 docker stop $(docker ps -l -q --filter "label=io.kubernetes.container.name=apiserver")
 docker stop $(docker ps -l -q --filter "label=io.kubernetes.container.name=api")
-```
-
-
-
-## Notes
-
-Seems like there are some issues running it on macos:
-
-:facepalm:
-
-```bash
-$ docker run -d -v $(pwd):/repo -w /repo --name docker --network=host --privileged docker:19-dind
-# Download notary
 ```
