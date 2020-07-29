@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -247,9 +248,25 @@ func (no *Repository) makeHubTransport(server, image string, log *logrus.Entry) 
 		log.WithError(err).WithField("server", server).Error("Error reading from notary server")
 		return nil
 	}
-
-	tokenHandler := auth.NewTokenHandler(base, nil, image, "pull")
-	modifiers = append(modifiers, auth.NewAuthorizer(challengeManager, tokenHandler, auth.NewBasicHandler(nil)))
+	creds := passwordStore{}
+	tokenHandler := auth.NewTokenHandler(base, creds, image, "pull")
+	modifiers = append(modifiers, auth.NewAuthorizer(challengeManager, tokenHandler, auth.NewBasicHandler(creds)))
 
 	return transport.NewTransport(base, modifiers...)
+}
+
+type passwordStore struct {
+}
+
+func (ps passwordStore) Basic(u *url.URL) (string, string) {
+	return "admin", "admin"
+}
+
+// to comply with the CredentialStore interface
+func (ps passwordStore) RefreshToken(u *url.URL, service string) string {
+	return ""
+}
+
+// to comply with the CredentialStore interface
+func (ps passwordStore) SetRefreshToken(u *url.URL, service string, token string) {
 }
