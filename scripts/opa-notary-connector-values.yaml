@@ -5,9 +5,9 @@ repositories:
   trust:
     enabled: true
     trustServer: "https://notary-server.notary.svc.cluster.local:4443"
-    #auth:
-      #user: admin
-      #pass: admin
+    auth:
+      user: admin
+      pass: admin
     signers:
     - role: "targets/jenkins"
       publicKey: "" # base64 encoded public key. Passed in Makefile local-deploy target
