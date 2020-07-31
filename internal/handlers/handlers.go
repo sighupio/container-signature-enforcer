@@ -29,9 +29,6 @@ type Response struct {
 	// Image is the complete image name (e.g. "<image_name>[:<tag>]@sha256:<sha256>").
 	// Can be "", for the same reasons of Sha256
 	Image string `json:"image,omitempty"`
-	// OK is true if there has been no error, the image requested is fine to be deployed,
-	// because signed by the required signers or because it did not require any
-	OK bool `json:"ok"`
 	// Err is the error message in case of OK set to false
 	Err string `json:"error,omitempty"`
 }
@@ -48,13 +45,11 @@ func GetImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 
 		if err != nil {
 			log.WithError(err).Errorf("there was an error while processing %+v", image)
-			response.OK = false
 			response.Err = err.Error()
 			c.AbortWithStatusJSON(http.StatusBadRequest, response)
 			return
 		}
 
-		response.OK = true
 		response.Image = image
 		response.Sha256 = sha256
 
@@ -81,13 +76,11 @@ func CheckImageHandlerBuilder(gc *conf.GlobalConfig) func(c *gin.Context) {
 
 		if err != nil {
 			log.WithError(err).Errorf("there was an error while processing %+v", request)
-			response.OK = false
 			response.Err = err.Error()
 			c.AbortWithStatusJSON(http.StatusBadRequest, response)
 			return
 		}
 
-		response.OK = true
 		response.Image = image
 		response.Sha256 = sha256
 

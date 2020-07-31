@@ -48,7 +48,6 @@ func TestFuzzingInput(t *testing.T) {
 			defer resp.Body.Close()
 			err = json.Unmarshal(body, response)
 			assert.NoError(t, err)
-			assert.Equal(t, response.OK, false)
 			assert.NotEqual(t, response.Err, "")
 			assert.Equal(t, response.Image, "")
 			assert.Equal(t, response.Sha256, "")
