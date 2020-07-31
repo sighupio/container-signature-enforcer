@@ -22,5 +22,5 @@ func reloadConfig(e fsnotify.Event) {
 		return
 	}
 	globalConfig.SetConfig(&newConfig)
-	reloadLogger.WithField("config", globalConfig.GetConfig()).Printf("New config loaded")
+	reloadLogger.WithField("config", globalConfig.GetConfig()).Debug("New config loaded")
 }
