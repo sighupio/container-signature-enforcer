@@ -22,7 +22,7 @@ var defaultConfig = &cobra.Command{
 			Repositories: conf.Repositories{
 				conf.Repository{
 					Name: "registry.test/.*",
-					Trust: conf.Trust{
+					Trust: &conf.Trust{
 						Enabled:     true,
 						TrustServer: "https://notary-server:4443",
 						Signers: []*conf.Signer{
