@@ -166,8 +166,8 @@ opa:
 
   extraVolumes:
   - name: opa-notary-connector-config
-    configMap:
-      name: opa-notary-connector-config
+    secret:
+      secretName: opa-notary-connector-config
   - name: notary-server-crt
     secret:
       secretName: notary-server-crt
