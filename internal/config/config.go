@@ -13,8 +13,6 @@ import (
 type Config struct {
 	Repositories `mapstructure:"repositories"`
 	validated    bool
-	//TODO: global signers that can be referenced by name from Trust, so that keys can be shared between repositories if needed
-	//GlobalSigners []Signer
 }
 
 // GetMatchingRepositoriesPerImage given an image finds and returns only the matching repositories
