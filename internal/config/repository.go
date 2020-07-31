@@ -8,8 +8,8 @@ type Repository struct {
 	// Regexes are accepted (e.g. "registry/test/alpine.*", or "registry/.*")
 	Name string `mapstructure:"name"`
 	// Specifies the policy to be applied when the Name regex matches the container image.
-	Trust    Trust `mapstructure:"trust"`
-	Priority int   `mapstructure:"priority"`
+	Trust    *Trust `mapstructure:"trust"`
+	Priority int    `mapstructure:"priority"`
 }
 
 // Created just to implement the priority sorting
@@ -31,6 +31,12 @@ func (r Repositories) Less(i, j int) bool {
 	return r[i].Priority > r[j].Priority
 }
 
+type Credentials struct {
+	//Secret   string `mapstructure:"secret,omitempty"`
+	User     string `mapstructure:"user,omitempty"`
+	Password string `mapstructure:"pass,omitempty"`
+}
+
 // Specifies the behavior the webhook has to enforce on a matched container.
 type Trust struct {
 	// Whether Trust has to be enforced
@@ -40,5 +46,11 @@ type Trust struct {
 	// in order to be accepted.
 	Signers []*Signer `mapstructure:"signers,omitempty"`
 	// The notary server that has to be used in order to verify an image
-	TrustServer string `mapstructure:"trustServer,omitempty"`
+	TrustServer string       `mapstructure:"trustServer,omitempty"`
+	Credentials *Credentials `mapstructure:"auth,omitempty"`
+}
+
+func (c *Credentials) GetCreds() (string, string, error) {
+	// could retrieve creds from a secret at some point
+	return c.User, c.Password, nil
 }

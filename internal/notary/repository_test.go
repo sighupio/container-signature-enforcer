@@ -26,7 +26,7 @@ func TestRepository(t *testing.T) {
 			//Priority is not checked here
 			Priority: 11,
 			Name:     "docker.io.*",
-			Trust: config.Trust{
+			Trust: &config.Trust{
 				Enabled:     true,
 				TrustServer: "sighup.notary.com",
 				Signers: []*config.Signer{

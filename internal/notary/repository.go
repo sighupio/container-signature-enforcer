@@ -204,7 +204,7 @@ func (no *Repository) newFileCachedRepository() error {
 		no.trustRootDir,
 		data.GUN(no.reference.Name),
 		no.configRepository.Trust.TrustServer,
-		no.makeHubTransport(no.configRepository.Trust.TrustServer, no.reference.Name, contextLogger),
+		no.makeHubTransport(no.configRepository.Trust, no.reference.Name, contextLogger),
 		nil, //no need for passRetriever ATM
 		//TODO: pass the notary CA explicitly via conf
 		trustpinning.TrustPinConfig{},
@@ -216,7 +216,8 @@ func (no *Repository) newFileCachedRepository() error {
 	return err
 }
 
-func (no *Repository) makeHubTransport(server, image string, log *logrus.Entry) http.RoundTripper {
+func (no *Repository) makeHubTransport(trust *config.Trust, image string, log *logrus.Entry) http.RoundTripper {
+	server := trust.TrustServer
 	base := http.DefaultTransport
 	modifiers := []transport.RequestModifier{
 		transport.NewHeaderRequestModifier(http.Header{
@@ -248,18 +249,29 @@ func (no *Repository) makeHubTransport(server, image string, log *logrus.Entry) 
 		log.WithError(err).WithField("server", server).Error("Error reading from notary server")
 		return nil
 	}
-	creds := passwordStore{}
-	tokenHandler := auth.NewTokenHandler(base, creds, image, "pull")
+	creds := passwordStore{trust, log}
+	tokenHandler := auth.NewTokenHandler(base, &creds, image, "pull")
 	modifiers = append(modifiers, auth.NewAuthorizer(challengeManager, tokenHandler, auth.NewBasicHandler(creds)))
 
 	return transport.NewTransport(base, modifiers...)
 }
 
 type passwordStore struct {
+	trust *config.Trust
+	log   *logrus.Entry
 }
 
 func (ps passwordStore) Basic(u *url.URL) (string, string) {
-	return "admin", "admin"
+	if ps.trust.Credentials == nil {
+		return "", ""
+	}
+	user, pass, err := ps.trust.Credentials.GetCreds()
+	ps.log.WithField("user", user).WithField("url", u).Info("retrieved pass for user")
+	if err != nil {
+		ps.log.WithError(err).Error("Got error while getting creds")
+		return "", ""
+	}
+	return user, pass
 }
 
 // to comply with the CredentialStore interface
