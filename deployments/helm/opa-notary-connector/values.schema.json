@@ -376,6 +376,7 @@
                         "properties": {
                             "auth": {
                                 "type": "object",
+                                "required": ["user","pass"],
                                 "properties": {
                                     "pass": {
                                         "type": "string"
