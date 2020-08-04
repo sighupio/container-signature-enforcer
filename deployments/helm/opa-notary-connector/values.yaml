@@ -3,14 +3,17 @@ strict: true
 
 # OPA Notary Connector configuration
 repositories: []
-# - name: "localhost.*"
-#   priority: 10
-#   trust:
-#     enabled: true
-#     trustServer: "https://notary-server.notary.svc.cluster.local:4443"
-#     signers:
-#     - role: "targets/jenkins"
-#       publicKey: "" # base64 encoded public key
+#- name: "localhost.*"
+  #priority: 10
+  #trust:
+    #enabled: true
+    #trustServer: "https://notary-server.notary.svc.cluster.local:4443"
+    #auth:
+      #user: ""
+      #pass: ""
+    #signers:
+    #- role: "targets/jenkins"
+      #publicKey: "" # base64 encoded public key
 
 opa:
   opa: false
