@@ -127,6 +127,7 @@ file.
 $ make local-stop local-start local-push local-deploy
 $ docker pull alpine:3.10
 $ docker tag alpine:3.10 localhost:30001/alpine:3.10
+$ docker login -u admin -p admin localhost:30001
 $ docker push localhost:30001/alpine:3.10
 $ kubectl run debug --image localhost:30001/alpine:3.10  -- sleep 3600
 Error from server (Container image localhost:30001/alpine:3.10 invalid: notary-server.notary.svc.cluster.local:4443 does not have trust data for localhost:30001/alpine): admission webhook "webhook.openpolicyagent.org" denied the request: Container image localhost:30001/alpine:3.10 invalid: notary-server.notary.svc.cluster.local:4443 does not have trust data for localhost:30001/alpine
