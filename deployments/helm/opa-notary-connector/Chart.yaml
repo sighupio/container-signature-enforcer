@@ -2,8 +2,8 @@ apiVersion: v2
 name: opa-notary-connector
 description: OPA Notary Connector helm chart
 type: application
-version: 0.1.0-rc3
-appVersion: 0.1.0-rc3
+version: 0.1.0-rc5
+appVersion: 0.1.0-rc5
 
 dependencies:
   - name: opa

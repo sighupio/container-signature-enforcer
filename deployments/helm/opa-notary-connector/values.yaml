@@ -129,7 +129,7 @@ opa:
 
   extraContainers:
   - name: opa-notary-connector
-    image: reg.sighup.io/sighupio/opa-notary-connector:v0.1.0-rc3
+    image: reg.sighup.io/sighupio/opa-notary-connector:v0.1.0-rc5
     imagePullPolicy: Always
     securityContext:
       runAsUser: 1001
