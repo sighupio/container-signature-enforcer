@@ -18,10 +18,7 @@ var (
 		Use:   "opa-notary-connector",
 		Short: "Start the server, loading configs",
 
-		// main function, reading config, setting up the router and starting the server
-		RunE: func(cmd *cobra.Command, args []string) error {
-
-			// start execution
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			err := viper.ReadInConfig()
 			if err != nil {
 				logrus.WithError(err).Fatal("Error reading config file")
@@ -30,6 +27,7 @@ var (
 			// load config
 			if err = viper.Unmarshal(globalConfig.GetConfig()); err != nil {
 				logrus.WithError(err).Fatal("Error unmarshalling config into struct")
+				return err
 			} else {
 				logrus.WithFields(logrus.Fields{"config": globalConfig.GetConfig(), "file": globalConfig.ConfigPath}).Info("Read config at startup.")
 			}
@@ -37,18 +35,25 @@ var (
 			startupLogger := logrus.WithField("phase", "startup")
 			if err := globalConfig.GetConfig().Validate(startupLogger); err != nil {
 				startupLogger.WithError(err).Fatal("Validation error for config")
+				return err
 			}
+			// trustRootDir is the location in which notary library will store its local cache
+			if err := os.MkdirAll(globalConfig.TrustRootDir, 0700); err != nil {
+				logrus.WithError(err).WithField("directory", globalConfig.TrustRootDir).Fatal("Error creating directory.")
+				return err
+			}
+			return nil
+		},
+		// main function, reading config, setting up the router and starting the server
+		RunE: func(cmd *cobra.Command, args []string) error {
+
 			// setup watch for config change and reload if config parseable
 			viper.WatchConfig()
 			viper.OnConfigChange(reloadConfig)
 
-			// trustRootDir is the location in which notary library will store its local cache
-			if err := os.MkdirAll(globalConfig.TrustRootDir, 0700); err != nil {
-				logrus.WithError(err).WithField("directory", globalConfig.TrustRootDir).Fatal("Error creating directory.")
-			}
-
 			// setup the router
 			r := handlers.SetupServer(globalConfig)
+			// start execution
 			return r.Run(globalConfig.BindAddress)
 		},
 	}

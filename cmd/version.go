@@ -17,9 +17,10 @@ var (
 )
 
 var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Prints version information",
-	Long:  ``,
+	Use:               "version",
+	Short:             "Prints version information",
+	Long:              ``,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error { return nil },
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("version: %s\ncommit: %s\ndate: %s\n", version, commit, date)
 	},
