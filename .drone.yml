@@ -35,7 +35,7 @@ name: build
 
 steps:
   - name: deps
-    image: golang:1.15.0-buster
+    image: golang:1.15.1-buster
     volumes:
       - name: deps
         path: /go
@@ -45,7 +45,7 @@ steps:
       - make deps
 
   - name: gosec
-    image: golang:1.15.0-buster
+    image: golang:1.15.1-buster
     volumes:
       - name: deps
         path: /go
@@ -57,7 +57,7 @@ steps:
       - deps
 
   - name: golangci-lint
-    image: golang:1.15.0-buster
+    image: golang:1.15.1-buster
     volumes:
       - name: deps
         path: /go
@@ -79,7 +79,7 @@ steps:
       - golangci-lint
 
   - name: go-test
-    image: golang:1.15.0-buster
+    image: golang:1.15.1-buster
     volumes:
       - name: deps
         path: /go
