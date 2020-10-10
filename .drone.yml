@@ -69,7 +69,7 @@ steps:
       - deps
 
   - name: opa-tests
-    image: node:12.18.4-buster
+    image: node:12.19.0-buster
     commands:
       - wget --quiet https://github.com/open-policy-agent/opa/releases/download/v0.22.0/opa_linux_amd64 -O /usr/local/bin/opa
       - chmod +x /usr/local/bin/opa
