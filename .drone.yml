@@ -34,6 +34,17 @@ kind: pipeline
 name: build
 
 steps:
+  - name: test-chart
+    image: alpine:3.12
+    environment:
+      HELM_EXPERIMENTAL_OCI: "1"
+    commands:
+      - wget https://get.helm.sh/helm-v3.2.4-linux-amd64.tar.gz
+      - tar -zxvf helm-v3.2.4-linux-amd64.tar.gz
+      - mv linux-amd64/helm /usr/local/bin/helm
+      - helm dependency update deployments/helm/opa-notary-connector/
+      - helm template --api-versions cert-manager.io/v1alpha3 deployments/helm/opa-notary-connector/
+
   - name: deps
     image: golang:1.15.5-buster
     volumes:

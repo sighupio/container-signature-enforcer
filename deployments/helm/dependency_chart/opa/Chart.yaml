@@ -1,0 +1,15 @@
+apiVersion: v1
+appVersion: 0.15.1
+deprecated: true
+description: DEPRECATED - Open source, general-purpose policy engine. Enforce fine-grained
+  invariants over arbitrary Kubernetes resources.
+home: https://www.openpolicyagent.org
+icon: https://raw.githubusercontent.com/open-policy-agent/opa/master/logo/logo.png
+keywords:
+- opa
+- admission control
+- policy
+name: opa
+sources:
+- https://github.com/open-policy-agent/opa
+version: 1.14.6
