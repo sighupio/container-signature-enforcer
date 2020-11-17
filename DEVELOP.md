@@ -1,6 +1,6 @@
 # Development notes
 
-In this docuemnt you will discover how to start a local environment to start contributing to OPA Notary Connector.
+In this document you will discover how to start a local environment to start contributing to OPA Notary Connector.
 
 ## TL;DR
 
@@ -27,7 +27,7 @@ Error from server (Container image localhost:30001/alpine:3.10 invalid: notary-s
 
 ### Ports
 
-The setup requires to have ports `30001`, `30003` and `30005` available in your computer. These ports will be used by
+The setup requires having ports `30001`, `30003` and `30005` available in your computer. These ports will be used by
 `docker-registry`, `notary server` and `auth-server`.
 
 ### `/etc/hosts` entries
