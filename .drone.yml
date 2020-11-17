@@ -123,6 +123,7 @@ volumes:
   - name: deps
     temp: {}
 
+
 ---
 kind: pipeline
 name: release
@@ -131,8 +132,8 @@ depends_on:
   - build
 
 trigger:
-  event:
-    - tag
+  ref:
+  - refs/tags/v*
 
 steps:
   - name: container-image
@@ -158,7 +159,7 @@ steps:
   - name: container-image-mirrored
     image: plugins/docker
     depends_on:
-      - container_image
+      - container-image
     settings:
       registry:
         from_secret: registry_mirrored
@@ -175,45 +176,59 @@ steps:
         - VERSION=${DRONE_TAG}
         - COMMIT=${DRONE_COMMIT}
 
-  - name: helm_release
+  - name: helm_package
     image: quay.io/helmpack/chart-releaser:v1.1.1
+    volumes:
+      - name: out
+        path: /out
     depends_on:
       - clone
     environment:
-      CHARTS: $CHARTS
+      OUT_PATH: /out
       CR_OWNER: sighupio
       CR_CHARTS_REPO: https://sighupio.github.io/opa-notary-connector/
       CR_GIT_REPO: opa-notary-connector
-      CR_PACKAGE_PATH: .cr-release-packages
-      CR_INDEX_PATH: .cr-index
+      CR_PACKAGE_PATH: /out/packages
+      CR_INDEX_PATH: /out/pages
       CR_TOKEN:
         from_secret: github_token
     commands:
       - wget https://get.helm.sh/helm-v3.2.4-linux-amd64.tar.gz
       - tar -zxvf helm-v3.2.4-linux-amd64.tar.gz
       - mv linux-amd64/helm /usr/local/bin/helm
-      - mkdir -p $CR_PACKAGE_PATH
       - helm dependency update deployments/helm/opa-notary-connector/
-      - helm package deployments/helm/opa-notary-connector --destination $CR_PACKAGE_PATH;
-      - mkdir -p $CR_INDEX_PATH
+      - mkdir -p $OUT_PATH/packages
+      - helm package deployments/helm/opa-notary-connector --destination $OUT_PATH/packages
+
+  - name: helm_upload
+    image: quay.io/helmpack/chart-releaser:v1.1.1
+    volumes:
+      - name: out
+        path: /out
+    depends_on:
+      - helm_package
+    environment:
+      OUT_PATH: /out
+      CR_OWNER: sighupio
+      CR_CHARTS_REPO: https://sighupio.github.io/opa-notary-connector/
+      CR_GIT_REPO: opa-notary-connector
+      CR_PACKAGE_PATH: /out/packages
+      CR_INDEX_PATH: /out/pages
+      CR_TOKEN:
+        from_secret: github_token
+    commands:
+      - mkdir -p $OUT_PATH/pages
+      - cr upload
       - cr index
       - cat $CR_INDEX_PATH/index.yaml
 
-  - name: publish_index
-    image: plugins/gh-pages
-    depends_on:
-      - helm_release
-    settings:
-      username: drone
-      password:
-        from_secret: github_token
-      target_branch: github-pages
-      pages_directory: .cr-index
-
-  - name: github-release
+  - name: github_release
     image: plugins/github-release
+    volumes:
+      - name: out
+        path: /out
     depends_on:
-      - helm_release
+      - helm_upload
     settings:
       api_key:
         from_secret: github_token
@@ -222,4 +237,23 @@ steps:
       overwrite: true
       files:
         - LICENSE
-        - .cr-release-packages/*
+        - /out/packages/*
+
+
+  - name: publish_index
+    image: plugins/gh-pages
+    volumes:
+      - name: out
+        path: /out
+    depends_on:
+      - helm_upload
+    settings:
+      username: drone
+      password:
+        from_secret: github_token
+      target_branch: github-pages
+      pages_directory: /out/pages
+
+volumes:
+  - name: out
+    temp: {}
