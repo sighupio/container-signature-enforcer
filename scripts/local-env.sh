@@ -70,7 +70,8 @@ kubectl wait --for=condition=Available deployment --timeout=3m -n notary --all
 
 echo "3. Deploying docker registry"
 helm repo add stable https://charts.helm.sh/stable
-helm upgrade --install registry stable/docker-registry --values scripts/docker-registry-values.yaml -n notary --version 1.9.4
+helm repo update
+helm upgrade --install registry stable/docker-registry --values scripts/docker-registry-values.yaml -n notary --version 1.9.6
 kubectl wait --for=condition=Available deployment --timeout=3m -n notary --all
 
 echo "4. Deploying notary"
