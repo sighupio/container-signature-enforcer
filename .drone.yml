@@ -5,6 +5,14 @@ name: mirror
 clone:
   disable: true
 
+trigger:
+  event:
+    exclude:
+      - promote
+  branch:
+    exclude:
+      - gh-pages
+
 steps:
   - name: mirror
     image: docker.io/alpine/git
@@ -32,6 +40,14 @@ steps:
 ---
 kind: pipeline
 name: build
+
+trigger:
+  event:
+    exclude:
+      - promote
+  branch:
+    exclude:
+      - gh-pages
 
 steps:
   - name: test-chart
@@ -111,15 +127,12 @@ volumes:
 kind: pipeline
 name: release
 
-#depends_on:
-  #- build
+depends_on:
+  - build
 
 trigger:
   event:
     - tag
-    - push
-  branch:
-    - testing_helm_release
 
 steps:
   - name: container-image
@@ -176,7 +189,6 @@ steps:
       - mkdir -p $CR_PACKAGE_PATH
       - helm dependency update deployments/helm/opa-notary-connector/
       - helm package deployments/helm/opa-notary-connector --destination $CR_PACKAGE_PATH;
-      - cr upload
       - mkdir -p $CR_INDEX_PATH
       - cr index
       - cat $CR_INDEX_PATH/index.yaml
@@ -187,7 +199,7 @@ steps:
       username: drone
       password:
         from_secret: github_token
-      target_branch: ${DRONE_BRANCH}
+      target_branch: github-pages
       pages_directory: .cr-index
 
   - name: github-release
@@ -200,3 +212,4 @@ steps:
       overwrite: true
       files:
         - LICENSE
+        - .cr-release-packages/*
