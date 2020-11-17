@@ -55,6 +55,7 @@ kubectl label namespace cert-manager sighup.io/webhook=ignore
 
 echo "1. Deploying cert-manager"
 retry 10 kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.15.2/cert-manager.crds.yaml
+helm repo add jetstack https://charts.jetstack.io
 helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --version v0.15.2
 kubectl wait --for=condition=Available deployment --timeout=3m -n cert-manager --all
 
@@ -67,6 +68,7 @@ retry 10 kubectl apply -f scripts/mock-auth-server.yaml
 kubectl wait --for=condition=Available deployment --timeout=3m -n notary --all
 
 echo "3. Deploying docker registry"
+helm repo add stable https://charts.helm.sh/stable
 helm upgrade --install registry stable/docker-registry --values scripts/docker-registry-values.yaml -n notary --version 1.9.4
 kubectl wait --for=condition=Available deployment --timeout=3m -n notary --all
 
