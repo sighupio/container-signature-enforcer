@@ -18,11 +18,13 @@ Error from server (Container image localhost:30001/alpine:3.10 invalid: notary-s
 
 ### Software
 
+- `golang` 1.14
 - `docker`
 - `kind`
   - `kubectl`
-- `helm` 3.1.3.
+- `helm` 3.1.3
 - `notary` cli
+- `gcc`
 - so related software like `make`, `bash`...
 
 ### Ports
