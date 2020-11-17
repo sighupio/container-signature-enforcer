@@ -1,6 +1,6 @@
 # Development notes
 
-In this document you will discover how to start a local environment to start contributing to OPA Notary Connector.
+In this document, you will discover how to start a local environment to start contributing to the OPA Notary Connector.
 
 ## TL;DR
 
@@ -27,7 +27,7 @@ Error from server (Container image localhost:30001/alpine:3.10 invalid: notary-s
 
 ### Ports
 
-The setup requires having ports `30001`, `30003` and `30005` available in your computer. These ports will be used by
+The setup requires having ports `30001`, `30003` and `30005` available on your computer. These ports will be used by
 `docker-registry`, `notary server` and `auth-server`.
 
 ### `/etc/hosts` entries
@@ -44,14 +44,14 @@ domains:
 
 ## Start the environment
 
-First, you need to start the environment. Base environment consist on:
+First, you need to start the environment. The base environment consists of:
 
 - docker-registry
 - notary
 - auth-server
 - cert-manager
 
-notary, registry and auth-server is configured with certificates issued by cert-manager.
+notary, registry, and auth-server are configured with certificates issued by cert-manager.
 
 To create this base environment you just need to run:
 
@@ -84,10 +84,10 @@ Your local environment has been created.
 
 After a while you will be able to:
 
-- Login (admin:admin) and push images to registry directly from your terminal. *(No need to expose ports)*
+- Log in (admin:admin) and push images to the registry directly from your terminal. *(No need to expose ports)*
 - Use (admin:admin) notary from your terminal. *(No need to expose ports)*.
 
-Also three new files are now present:
+Also, three new files are now present:
 
 - `delegation.crt`: Delegation certificate to sign images. Run `make local-help` to discover useful commands
 - `delegation.key`: Delegation key to sign images. Run `make local-help` to discover useful commands
@@ -165,7 +165,7 @@ This error is expected as the image does not have a trusted signature.
 
 #### macOS users
 
-If you are using macOS, run the following commands inside dind.
+If you are using macOS, run the following commands inside dind *(docker in docker)*.
 
 ```bash
 $ docker run -d -v $(pwd):/repo -w /repo --name docker --network=host --privileged docker:19-dind
@@ -179,7 +179,7 @@ $ docker exec -it docker /bin/sh
 
 #### Add a valid signature
 
-All commands listed bellow are available once you create a cluster using: `make local-start` and also if you run
+All commands listed below are available once you create a cluster using: `make local-start` and also if you run
 `make local-help`
 
 ```bash
@@ -223,7 +223,7 @@ Error from server (Container image localhost:30001/alpine:3.11 invalid: No valid
 
 Now a new error appeared. Caused by an unsigned image.
 
-## Destroy local environment
+## Destroy the local environment
 
 To destroy the local environment:
 
@@ -239,7 +239,7 @@ It will delete the following files and directories:
 - `delegation.crt`
 - `ca.crt`
 
-As they are fully dependant of this local environment.
+As they are fully dependant on this local environment.
 
 ## Development
 
@@ -252,7 +252,7 @@ Having the local environment working, if you want to change some golang code and
 $ make local-push local-deploy
 ```
 
-After a while you will be able to see your changes in the cluster
+After a while, you will be able to see your changes in the cluster
 
 ### rego
 
@@ -260,7 +260,7 @@ Modify rego code has to be managed in two separate ways
 
 #### Main
 
-Main code is where kubernetes will call once a new requests matches the configuration.
+The main code is where Kubernetes will call once a new request matches the configuration.
 The main code is available [`scripts/opa-notary-connector-values.yaml`](scripts/opa-notary-connector-values.yaml) in
 the `bootstrapPolicies` attribute.
 
@@ -271,7 +271,7 @@ In case you change it run:
 $ make local-deploy
 ```
 
-After a while you will be able to see your changes in the cluster
+After a while, you will be able to see your changes in the cluster
 
 #### Rules
 
@@ -280,8 +280,8 @@ Rego code is available in the
 
 This code is in charge of get the image to run, pass it to the golang project and decide what to do next:
 
-- deny: Deny in case opa does not contains a valid signature.
-- patch: Patch the request with the image sha to be inmutable.
+- deny: Deny in case opa does not contain a valid signature.
+- patch: Patch the request with the image sha to be immutable.
 
 In case you change it run:
 
