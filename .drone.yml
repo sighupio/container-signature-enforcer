@@ -111,12 +111,15 @@ volumes:
 kind: pipeline
 name: release
 
-depends_on:
-  - build
+#depends_on:
+  #- build
 
 trigger:
   event:
     - tag
+    - push
+  branch:
+    - testing_helm_release
 
 steps:
   - name: container-image
@@ -155,24 +158,37 @@ steps:
         - VERSION=${DRONE_TAG}
         - COMMIT=${DRONE_COMMIT}
 
-  - name: chart
-    image: alpine:3.12
+  - name: helm_release
+    image: quay.io/helmpack/chart-releaser:v1.1.1
     environment:
-      registry:
-        from_secret: registry_mirrored
-      username:
-        from_secret: registry_user_mirrored
-      password:
-        from_secret: registry_password_mirrored
-      repo: reg.sighup.io/sighupio/opa-notary-connector/chart
-      HELM_EXPERIMENTAL_OCI: "1"
+      CHARTS: $CHARTS
+      CR_OWNER: sighupio
+      CR_CHARTS_REPO: https://sighupio.github.io/opa-notary-connector/
+      CR_GIT_REPO: opa-notary-connector
+      CR_PACKAGE_PATH: .cr-release-packages
+      CR_INDEX_PATH: .cr-index
+      CR_TOKEN:
+        from_secret: github_token
     commands:
       - wget https://get.helm.sh/helm-v3.2.4-linux-amd64.tar.gz
       - tar -zxvf helm-v3.2.4-linux-amd64.tar.gz
       - mv linux-amd64/helm /usr/local/bin/helm
-      - helm registry login -u $${username} -p $${password} $${registry}
-      - "helm chart save deployments/helm/opa-notary-connector $${repo}:${DRONE_TAG}"
-      - "helm chart push $${repo}:${DRONE_TAG}"
+      - mkdir -p $CR_PACKAGE_PATH
+      - helm dependency update deployments/helm/opa-notary-connector/
+      - helm package deployments/helm/opa-notary-connector --destination $CR_PACKAGE_PATH;
+      - cr upload
+      - mkdir -p $CR_INDEX_PATH
+      - cr index
+      - cat $CR_INDEX_PATH/index.yaml
+
+  - name: publish_index
+    image: plugins/gh-pages
+    settings:
+      username: drone
+      password:
+        from_secret: github_token
+      target_branch: ${DRONE_BRANCH}
+      pages_directory: .cr-index
 
   - name: github-release
     image: plugins/github-release
