@@ -69,7 +69,7 @@ retry 10 kubectl apply -f scripts/mock-auth-server.yaml
 kubectl wait --for=condition=Available deployment --timeout=3m -n notary --all
 
 echo "3. Deploying docker registry"
-helm repo add stable https://charts.helm.sh/stable
+helm repo add stable https://charts.helm.sh/stable --force-update
 helm repo update
 helm upgrade --install registry stable/docker-registry --values scripts/docker-registry-values.yaml -n notary --version 1.9.6
 kubectl wait --for=condition=Available deployment --timeout=3m -n notary --all
