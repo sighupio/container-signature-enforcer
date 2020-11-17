@@ -137,6 +137,8 @@ trigger:
 steps:
   - name: container-image
     image: plugins/docker
+    depends_on:
+      - clone
     settings:
       registry:
         from_secret: registry
@@ -155,6 +157,8 @@ steps:
 
   - name: container-image-mirrored
     image: plugins/docker
+    depends_on:
+      - container_image
     settings:
       registry:
         from_secret: registry_mirrored
@@ -173,6 +177,8 @@ steps:
 
   - name: helm_release
     image: quay.io/helmpack/chart-releaser:v1.1.1
+    depends_on:
+      - clone
     environment:
       CHARTS: $CHARTS
       CR_OWNER: sighupio
@@ -195,6 +201,8 @@ steps:
 
   - name: publish_index
     image: plugins/gh-pages
+    depends_on:
+      - helm_release
     settings:
       username: drone
       password:
@@ -204,6 +212,8 @@ steps:
 
   - name: github-release
     image: plugins/github-release
+    depends_on:
+      - helm_release
     settings:
       api_key:
         from_secret: github_token
