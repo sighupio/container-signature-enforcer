@@ -56,6 +56,7 @@ kubectl label namespace cert-manager sighup.io/webhook=ignore
 echo "1. Deploying cert-manager"
 retry 10 kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.15.2/cert-manager.crds.yaml
 helm repo add jetstack https://charts.jetstack.io
+helm repo update
 helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --version v0.15.2
 kubectl wait --for=condition=Available deployment --timeout=3m -n cert-manager --all
 
