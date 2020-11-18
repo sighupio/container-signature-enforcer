@@ -2,6 +2,20 @@ apiVersion: v1
 entries:
   opa-notary-connector:
   - apiVersion: v2
+    appVersion: 0.1.2
+    created: "2020-11-18T13:12:52.667042783Z"
+    dependencies:
+    - name: opa
+      repository: file://../dependency_chart/opa
+      version: 1.14.6
+    description: OPA Notary Connector helm chart
+    digest: f6d581acf08410926f2143bff145ec2a3dbd41eb312495ddb3a589e399c2cfcf
+    name: opa-notary-connector
+    type: application
+    urls:
+    - https://github.com/sighupio/opa-notary-connector/releases/download/opa-notary-connector-0.1.2/opa-notary-connector-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
     appVersion: 0.1.1
     created: "2020-11-17T16:42:56.978511395Z"
     dependencies:
