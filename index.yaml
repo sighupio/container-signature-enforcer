@@ -2,6 +2,20 @@ apiVersion: v1
 entries:
   opa-notary-connector:
   - apiVersion: v2
+    appVersion: 0.1.3
+    created: "2020-12-01T15:12:29.806308028Z"
+    dependencies:
+    - name: opa
+      repository: https://open-policy-agent.github.io/kube-mgmt/charts
+      version: 1.14.6
+    description: OPA Notary Connector helm chart
+    digest: d4f27b4b92bcd3ddc50f0bc0263c11559f7eab8ebeffc07c70407196f64edaf8
+    name: opa-notary-connector
+    type: application
+    urls:
+    - https://github.com/sighupio/opa-notary-connector/releases/download/opa-notary-connector-0.1.3/opa-notary-connector-0.1.3.tgz
+    version: 0.1.3
+  - apiVersion: v2
     appVersion: 0.1.2
     created: "2020-11-18T13:12:52.667042783Z"
     dependencies:
