@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
-	"fmt"
 	"testing"
 
 	"github.com/sighupio/opa-notary-connector/internal/config"
@@ -28,14 +27,15 @@ func genPubKey(t *testing.T) string {
 	assert.NoError(t, err)
 
 	asn1Bytes, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+	assert.NoError(t, err)
 
 	var pemkey = &pem.Block{
 		Type:  "PUBLIC KEY",
 		Bytes: asn1Bytes,
 	}
 	var buf bytes.Buffer
-	pem.Encode(&buf, pemkey)
-	fmt.Printf(buf.String())
+	err = pem.Encode(&buf, pemkey)
+	assert.NoError(t, err)
 
 	return base64.StdEncoding.EncodeToString(buf.Bytes())
 }

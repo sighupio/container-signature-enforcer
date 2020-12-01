@@ -317,3 +317,11 @@ cp master-config.yaml master-config-tmp.yaml
 docker stop $(docker ps -l -q --filter "label=io.kubernetes.container.name=apiserver")
 docker stop $(docker ps -l -q --filter "label=io.kubernetes.container.name=api")
 ```
+
+# Releasing process
+
+In order to release `vX.Y.Z`
+- write all the release notes into a markdown file `docs/releases/vX.Y.Z.md` following the template of the previous releases
+- run `bumpversion patch`
+- `git push`
+- `git push --tags`
