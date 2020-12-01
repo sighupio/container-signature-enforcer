@@ -1,7 +1,14 @@
 package notary
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/pem"
+	"fmt"
 	"testing"
 
 	"github.com/sighupio/opa-notary-connector/internal/config"
@@ -13,13 +20,33 @@ import (
 	"github.com/theupdateframework/notary/tuf/data"
 )
 
+func genPubKey(t *testing.T) string {
+	reader := rand.Reader
+	bitSize := 2048
+
+	key, err := rsa.GenerateKey(reader, bitSize)
+	assert.NoError(t, err)
+
+	asn1Bytes, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+
+	var pemkey = &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: asn1Bytes,
+	}
+	var buf bytes.Buffer
+	pem.Encode(&buf, pemkey)
+	fmt.Printf(buf.String())
+
+	return base64.StdEncoding.EncodeToString(buf.Bytes())
+}
+
 func TestRepository(t *testing.T) {
 	t.Parallel()
 	log := logrus.NewEntry(&logrus.Logger{})
 	conf := config.Config{}
 	signer := &config.Signer{
 		Role:      "targets/sighup",
-		PublicKey: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURhekNDQWxPZ0F3SUJBZ0lVYXQzbjRucm5IUGxrdHdJR2F5ZGxqaVFpUFRNd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1JURUxNQWtHQTFVRUJoTUNRVlV4RXpBUkJnTlZCQWdNQ2xOdmJXVXRVM1JoZEdVeElUQWZCZ05WQkFvTQpHRWx1ZEdWeWJtVjBJRmRwWkdkcGRITWdVSFI1SUV4MFpEQWVGdzB5TURFeU1ERXhORE0xTVRCYUZ3MHlNVEV5Ck1ERXhORE0xTVRCYU1FVXhDekFKQmdOVkJBWVRBa0ZWTVJNd0VRWURWUVFJREFwVGIyMWxMVk4wWVhSbE1TRXcKSHdZRFZRUUtEQmhKYm5SbGNtNWxkQ0JYYVdSbmFYUnpJRkIwZVNCTWRHUXdnZ0VpTUEwR0NTcUdTSWIzRFFFQgpBUVVBQTRJQkR3QXdnZ0VLQW9JQkFRQzE5bDdTeEpSSUhVbkV5TTFNeU1TcUFYS1Y4YWVuRDR5aExuNlROcjVFCmxCaUhtZytIU3F2KytSQUV1NmhoRU5TU2t2cFd3aGJ3U0ZTU2ZTS0tDZm5WNHdBRElvekxRZlFPZUMyc2NhM0UKSGNwNkFYQ1FtSGRrYWx2NHl4SEhEazEweDI0TDVTTmF3ZFYvUm5DQUJ5VUxmeUs5QkJSYzhDQVlEQmpaS1R4bwpJM2J6UlBUVFNSd1VIWHJFMDhpYmkxS2lsTFprT2hKWGhYd0ltbjhmbkJtTHdTd0EwQWRIazF2cWFQR2J4bnVKCmU1U0JiVEljdjBmOEFCaE5rQ3ZRWVlyTEtrM2x5NjhWMktDK0ZTRmNoangrUFdRTUVTOWZ6NUZUU3F4YUY2ZHkKSzR4MFRMbWpNcDBabkowWU1qYlFaK1I3SXFtRy83TzhvVlJZQXlrdEZyZ2hBZ01CQUFHalV6QlJNQjBHQTFVZApEZ1FXQkJUKzd2dFNOREZpWW9YRDc2Y0dVMW9TdXk0M3F6QWZCZ05WSFNNRUdEQVdnQlQrN3Z0U05ERmlZb1hECjc2Y0dVMW9TdXk0M3F6QVBCZ05WSFJNQkFmOEVCVEFEQVFIL01BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQ2EKM1JzUUpIazNTUWlTMCtCdEFuSGNGZ09scDU0OGcrMWZlcXFuWmdYZWMvUHhsSU1tUXVvSHExNlNTTUMxcFJTagphM1liMy9uZUkvR3d6ZzlIc1pRYm0vdlA0YjlNaG55aXN5ZGxacHhKS0ZIdWExN1hjcWV0VUJBUEpFUC9LVUVjClNNUDA4dXlETURKNVcxcVdZOFNnczUxeEM2Z1cycTZJd3d5Q3gvM25EVy9PSXhKc0NEYVJQNHp1WmRmMWw2ZGIKYmhUMWY0YUlyRUlvSVlPeFhOV05tQ1FMUWFiMjVncWw2aVJ5TVFieGx6a0kxTm43NWJsbGFyZjJ4QWpLSmNHRQpVQWFKNkZwWjhENGRkQnhCZmF3L29oNld1UXVscmlFWEozc05DMndLWWtHdnlTZi9VcmZQb2RKTEFvKy9BY3BSCnZZM0d1OFl6dUMwZE9WUkFtL3RPCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K",
+		PublicKey: genPubKey(t),
 	}
 	conf.Repositories = config.Repositories{
 		config.Repository{
