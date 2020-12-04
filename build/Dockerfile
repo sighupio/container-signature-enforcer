@@ -1,4 +1,4 @@
-FROM golang:1.15.5-alpine AS builder
+FROM golang:1.15.6-alpine AS builder
 
 ARG PROJECT_NAME="opa-notary-connector"
 ARG VERSION="dev"
