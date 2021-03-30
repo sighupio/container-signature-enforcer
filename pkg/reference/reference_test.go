@@ -69,6 +69,34 @@ func TestReferenceName(t *testing.T) {
 	}
 }
 
+func TestReferenceGetName(t *testing.T) {
+	t.Parallel()
+	var tests = []struct {
+		image, sha, expectedName string
+	}{
+		{image: "docker.io/test/alpine:test", sha: "ajskhdkhjsdkjahdkjha", expectedName: "docker.io/test/alpine:test@sha256:ajskhdkhjsdkjahdkjha"},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.image, func(t *testing.T) {
+			t.Parallel()
+			ref, err := NewReference(tt.image, logrus.NewEntry(logrus.StandardLogger()))
+			if err != nil {
+				t.Errorf("Got error %s", err.Error())
+				return
+			}
+			if ref == nil {
+				t.Errorf("Got nil ref for %s", tt.image)
+				return
+			}
+			ref.Digest = tt.sha
+			if name := ref.GetName(); tt.expectedName != name {
+				t.Errorf("Got %s expected %s as name", name, tt.expectedName)
+			}
+		})
+	}
+}
+
 func TestMalformedImage(t *testing.T) {
 	tests := []struct {
 		image       string
