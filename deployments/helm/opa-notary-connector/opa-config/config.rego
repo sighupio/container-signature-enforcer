@@ -1,5 +1,6 @@
 package kubernetes.admission
 
+# Build the image set for each resource Kind
 
 images[img] {
   input.request.kind.kind == "Pod"
@@ -36,6 +37,8 @@ images[img] {
     }
 }
 
+# Foreach image, ask notary connector and build the opa_notary_connector_resposes set
+
 opa_notary_connector_responses[resp] {
   images[i].index
   resp := {
@@ -53,21 +56,29 @@ opa_notary_connector_responses[resp] {
     }
 }
 
+# If one of the opa_notary_connector_resposes is not returning status code 200, return error message
+
 deny[msg] {
   opa_notary_connector_responses[i].response.status_code != 200
   error_message := opa_notary_connector_responses[i].response.body.error
   msg := sprintf("Container image %v invalid: %v", [opa_notary_connector_responses[i].image, error_message])
 }
 
+# Build the patches set for each opa_notary_connector_responses with status code 200. Get image + sha256 from opa-notary-connector response body.
+
 patches[patch] {
+  # If the manifest can have multiple images, replace %v with sprintf to change the image in the correct index
   opa_notary_connector_responses[i].index
   opa_notary_connector_responses[i].response.status_code == 200
-  patch := {"op": "replace", "path": sprintf(opa_notary_connector_responses[i].patch_path, [opa_notary_connector_responses[i].index]) , "value":opa_notary_connector_responses[i].image }
+  patch := {"op": "replace", "path": sprintf(opa_notary_connector_responses[i].patch_path, [opa_notary_connector_responses[i].index]) , "value":opa_notary_connector_responses[i].response.body.image }
 } {
+  # if the manifest has only one image, not in some array (eg, minio crd, or prometheus crd)
   not opa_notary_connector_responses[i].index
   opa_notary_connector_responses[i].response.status_code == 200
-  patch := {"op": "replace", "path": opa_notary_connector_responses[i].patch_path , "value":opa_notary_connector_responses[i].image }
+  patch := {"op": "replace", "path": opa_notary_connector_responses[i].patch_path , "value":opa_notary_connector_responses[i].response.body.image }
 }
+
+# Build the patches set to add annotation to know that the manifest has been processed by opa
 
 patches[patch]{
   input.request.object.metadata.annotations
@@ -75,6 +86,8 @@ patches[patch]{
 } {
   patch := {"op": "add", "path": "/metadata/annotations", "value": {"opa-notary-connector.sighup.io/processed": "true"}}
 }
+
+# Helper function to curl against opa-notary-connector sidecar pod
 
 req_opa_notary_connector(s) = x {
     request := {
