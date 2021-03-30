@@ -2,7 +2,7 @@ opa-notary-connector
 ====================
 OPA Notary Connector helm chart
 
-Current chart version is `0.1.3`
+Current chart version is `0.1.4`
 
 
 
@@ -42,7 +42,7 @@ Current chart version is `0.1.3`
 | opa.extraContainers[0].command[0] | string | `"/opa-notary-connector"` |  |
 | opa.extraContainers[0].env[0].name | string | `"GIN_MODE"` |  |
 | opa.extraContainers[0].env[0].value | string | `"release"` |  |
-| opa.extraContainers[0].image | string | `"reg.sighup.io/sighupio/opa-notary-connector:v0.1.3"` |  |
+| opa.extraContainers[0].image | string | `"reg.sighup.io/sighupio/opa-notary-connector:v0.1.4"` |  |
 | opa.extraContainers[0].imagePullPolicy | string | `"Always"` |  |
 | opa.extraContainers[0].livenessProbe.httpGet.path | string | `"/healthz"` |  |
 | opa.extraContainers[0].livenessProbe.httpGet.port | string | `"http"` |  |
