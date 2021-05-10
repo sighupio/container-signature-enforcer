@@ -177,7 +177,7 @@ steps:
         - COMMIT=${DRONE_COMMIT}
 
   - name: helm_package
-    image: quay.io/helmpack/chart-releaser:v1.2.0
+    image: quay.io/helmpack/chart-releaser:v1.2.1
     volumes:
       - name: out
         path: /out
@@ -201,7 +201,7 @@ steps:
       - helm package deployments/helm/opa-notary-connector --destination $OUT_PATH/packages
 
   - name: helm_upload
-    image: quay.io/helmpack/chart-releaser:v1.2.0
+    image: quay.io/helmpack/chart-releaser:v1.2.1
     volumes:
       - name: out
         path: /out
