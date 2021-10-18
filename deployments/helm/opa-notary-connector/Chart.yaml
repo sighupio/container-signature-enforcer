@@ -7,5 +7,5 @@ appVersion: 0.1.4
 
 dependencies:
   - name: opa
-    version: 1.14.6
+    version: 1.30.0
     repository: "https://open-policy-agent.github.io/kube-mgmt/charts"
