@@ -51,7 +51,7 @@ trigger:
 
 steps:
   - name: test-chart
-    image: alpine:3.13
+    image: alpine:3.14
     environment:
       HELM_EXPERIMENTAL_OCI: "1"
     commands:
