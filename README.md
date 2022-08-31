@@ -1,4 +1,4 @@
-# OPA Notary Connector
+# Container Signature Enforcer
 
 [![Build Status](https://ci.sighup.io/api/badges/sighupio/opa-notary-connector/status.svg?ref=refs/tags/v0.1.4)](https://ci.sighup.io/sighupio/opa-notary-connector)
 [![Artifact HUB](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/opa-notary-connector)](https://artifacthub.io/packages/search?repo=opa-notary-connector)
@@ -16,11 +16,11 @@ The enforcing is configurable per namespace and registry.
 
 ## Requirements
 
-OPA Notary Connector fits in a running environment with:
+Container Signature Enforcer fits in a running environment with:
 
 - Kubernetes Cluster > 1.16
 - Container Registry
-- Notary Server
+- Notary v1 Server
 
 You will need to have:
 - Notary delegation key to sign and validate container image.
@@ -86,7 +86,7 @@ preconfigured opa subchart configuration while exposing its configuration parame
 
 ## Intended behavior in specific use cases
 
-Deployed and configured the opa-notary-connector in the target cluster, when a new resource containing one or more images' references is received the webhook will behave as follows:
+Deployed and configured the Container Signature Enforcer in the target cluster, when a new resource containing one or more images' references is received the webhook will behave as follows:
 
 | Namespace | Image | Trust | Signatures | Accepted |
 | :-------: | :---: | :---: | :--------: | :------: |
@@ -119,7 +119,7 @@ In case of more than one image specified in a single resource, all images have t
 
 ## Getting started (Local)
 
-The fastest option to try this `opa-notary-connector` in your local machine is to follow [`DEVELOP.md`](DEVELOP.md)
+The fastest option to try this `container-signature-enforcer` in your local machine is to follow [`DEVELOP.md`](DEVELOP.md)
 file.
 
 ### TL;DR
